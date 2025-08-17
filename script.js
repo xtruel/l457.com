@@ -369,23 +369,10 @@ function openLightbox(src, type) {
     // Create lightbox overlay
     const lightbox = document.createElement('div');
     lightbox.className = 'lightbox';
-    lightbox.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.9);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: 2000;
-        cursor: pointer;
-    `;
     
     const media = type === 'image' ? 
-        `<img src="${src}" style="max-width: 90%; max-height: 90%; object-fit: contain;">` :
-        `<video src="${src}" controls style="max-width: 90%; max-height: 90%;"></video>`;
+        `<img src="${src}">` :
+        `<video src="${src}" controls></video>`;
     
     lightbox.innerHTML = media;
     lightbox.addEventListener('click', () => document.body.removeChild(lightbox));
@@ -454,55 +441,7 @@ function showNotification(message) {
     }, 3000);
 }
 
-// Add CSS animations for notifications
-const style = document.createElement('style');
-style.textContent = `
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOutRight {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-    
-    .cart-item-controls {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        margin-top: 0.5rem;
-    }
-    
-    .cart-item-controls button {
-        background: #f0f0f0;
-        border: none;
-        width: 25px;
-        height: 25px;
-        border-radius: 3px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .cart-item-controls button:hover {
-        background: #e0e0e0;
-    }
-`;
-document.head.appendChild(style);
+// Styles moved to styles.css to comply with CSP
 
 // Scroll animations
 function handleScrollAnimations() {
