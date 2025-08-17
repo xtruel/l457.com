@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>L457 - Abbigliamento Streetwear</title>
     <link rel="stylesheet" href="styles.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Font Awesome rimosso per compatibilità CSP -->
 </head>
 <body>
     <!-- Header -->
@@ -22,11 +22,11 @@
                     <li><a href="#contact">Contatti</a></li>
                 </ul>
                 <div class="nav-icons">
-                    <i class="fas fa-search" id="search-btn"></i>
-                    <i class="fas fa-shopping-cart" id="cart-btn">
-                        <span class="cart-count">0</span>
-                    </i>
-                    <i class="fas fa-bars" id="menu-toggle"></i>
+                    <span class="icon" id="search-btn">🔍</span>
+                    <span class="icon" id="cart-btn">
+                        🛒 <span class="cart-count">0</span>
+                    </span>
+                    <span class="icon" id="menu-toggle">☰</span>
                 </div>
             </div>
         </nav>
@@ -39,10 +39,11 @@
             <p>Scopri la nostra collezione di magliette e felpe uniche</p>
             <button class="cta-button">Esplora Collezione</button>
         </div>
-        <div class="hero-video">
-            <video autoplay muted loop>
-                <source src="assets/hero-video.mp4" type="video/mp4">
-            </video>
+        <div class="hero-image">
+            <div class="hero-placeholder">
+                <h2>L457</h2>
+                <p>Streetwear Collection</p>
+            </div>
         </div>
     </section>
 
