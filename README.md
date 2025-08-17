@@ -2,6 +2,9 @@
 
 Sito web e-commerce per il brand L457, specializzato in magliette e felpe streetwear.
 
+## Deployment Status
+Website is deployed via GitHub Actions workflow.
+
 ## Caratteristiche
 
 - **Design Moderno**: Interfaccia responsive e moderna
