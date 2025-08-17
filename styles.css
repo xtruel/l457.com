@@ -60,6 +60,17 @@ body {
     background: #e0e0e0;
 }
 
+.cart-item-controls .remove-btn {
+    margin-left: 10px;
+    color: #ff6b6b;
+}
+
+.empty-cart-message {
+    text-align: center;
+    color: #666;
+    padding: 2rem;
+}
+
 /* Lightbox styles */
 .lightbox {
     position: fixed;

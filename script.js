@@ -186,11 +186,16 @@ function createProductCard(product) {
             <h3>${product.name}</h3>
             <p>${product.description}</p>
             <div class="product-price">€${product.price}</div>
-            <button class="add-to-cart" onclick="addToCart(${product.id})">
-                <i class="fas fa-shopping-cart"></i> Aggiungi al Carrello
+            <button class="add-to-cart" data-product-id="${product.id}">
+                🛒 Aggiungi al Carrello
             </button>
         </div>
     `;
+    
+    // Add event listener for the add to cart button
+    const addButton = card.querySelector('.add-to-cart');
+    addButton.addEventListener('click', () => addToCart(product.id));
+    
     return card;
 }
 
@@ -270,7 +275,7 @@ function updateCartUI() {
     cartItems.innerHTML = '';
     
     if (cart.length === 0) {
-        cartItems.innerHTML = '<p style="text-align: center; color: #666; padding: 2rem;">Il carrello è vuoto</p>';
+        cartItems.innerHTML = '<p class="empty-cart-message">Il carrello è vuoto</p>';
     } else {
         cart.forEach(item => {
             const cartItem = document.createElement('div');
@@ -281,13 +286,23 @@ function updateCartUI() {
                     <h4>${item.name}</h4>
                     <div class="cart-item-price">€${item.price} x ${item.quantity}</div>
                     <div class="cart-item-controls">
-                        <button onclick="updateCartQuantity(${item.id}, ${item.quantity - 1})">-</button>
+                        <button class="decrease-btn" data-item-id="${item.id}">-</button>
                         <span>${item.quantity}</span>
-                        <button onclick="updateCartQuantity(${item.id}, ${item.quantity + 1})">+</button>
-                        <button onclick="removeFromCart(${item.id})" style="margin-left: 10px; color: #ff6b6b;">🗑️</button>
+                        <button class="increase-btn" data-item-id="${item.id}">+</button>
+                        <button class="remove-btn" data-item-id="${item.id}">🗑️</button>
                     </div>
                 </div>
             `;
+            
+            // Add event listeners for cart controls
+            const decreaseBtn = cartItem.querySelector('.decrease-btn');
+            const increaseBtn = cartItem.querySelector('.increase-btn');
+            const removeBtn = cartItem.querySelector('.remove-btn');
+            
+            decreaseBtn.addEventListener('click', () => updateCartQuantity(item.id, item.quantity - 1));
+            increaseBtn.addEventListener('click', () => updateCartQuantity(item.id, item.quantity + 1));
+            removeBtn.addEventListener('click', () => removeFromCart(item.id));
+            
             cartItems.appendChild(cartItem);
         });
     }
