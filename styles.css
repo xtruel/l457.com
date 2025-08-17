@@ -142,7 +142,7 @@ body {
     opacity: 0.9;
 }
 
-.hero-video::after {
+.hero-image::after {
     content: '';
     position: absolute;
     top: 0;
