@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L457 - Abbigliamento Streetwear</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="navbar">
+            <div class="nav-container">
+                <div class="logo">
+                    <h1>L457</h1>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#products">Prodotti</a></li>
+                    <li><a href="#gallery">Galleria</a></li>
+                    <li><a href="#contact">Contatti</a></li>
+                </ul>
+                <div class="nav-icons">
+                    <i class="fas fa-search" id="search-btn"></i>
+                    <i class="fas fa-shopping-cart" id="cart-btn">
+                        <span class="cart-count">0</span>
+                    </i>
+                    <i class="fas fa-bars" id="menu-toggle"></i>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="home" class="hero">
+        <div class="hero-content">
+            <h1>L457 Streetwear</h1>
+            <p>Scopri la nostra collezione di magliette e felpe uniche</p>
+            <button class="cta-button">Esplora Collezione</button>
+        </div>
+        <div class="hero-video">
+            <video autoplay muted loop>
+                <source src="assets/hero-video.mp4" type="video/mp4">
+            </video>
+        </div>
+    </section>
+
+    <!-- Products Section -->
+    <section id="products" class="products">
+        <div class="container">
+            <h2>I Nostri Prodotti</h2>
+            <div class="product-categories">
+                <div class="category" data-category="magliette">
+                    <h3>Magliette</h3>
+                    <p>Design unici e materiali di qualità</p>
+                </div>
+                <div class="category" data-category="felpe">
+                    <h3>Felpe</h3>
+                    <p>Comfort e stile per ogni occasione</p>
+                </div>
+            </div>
+            <div class="product-grid" id="product-grid">
+                <!-- Products will be loaded dynamically -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Gallery Section -->
+    <section id="gallery" class="gallery">
+        <div class="container">
+            <h2>Galleria</h2>
+            <div class="gallery-tabs">
+                <button class="tab-btn active" data-tab="images">Immagini</button>
+                <button class="tab-btn" data-tab="videos">Video</button>
+            </div>
+            <div class="gallery-content">
+                <div class="tab-content active" id="images">
+                    <div class="image-grid" id="image-grid">
+                        <!-- Images will be loaded dynamically -->
+                    </div>
+                </div>
+                <div class="tab-content" id="videos">
+                    <div class="video-grid" id="video-grid">
+                        <!-- Videos will be loaded dynamically -->
+                    </div>
+                </div>
+            </div>
+            <div class="upload-section">
+                <h3>Carica Media</h3>
+                <div class="upload-controls">
+                    <input type="file" id="file-input" accept="image/*,video/*" multiple>
+                    <button id="upload-btn">Carica File</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3>Carrello</h3>
+            <i class="fas fa-times" id="close-cart"></i>
+        </div>
+        <div class="cart-items" id="cart-items">
+            <!-- Cart items will be added dynamically -->
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total">
+                <strong>Totale: €<span id="cart-total">0.00</span></strong>
+            </div>
+            <button class="checkout-btn" id="checkout-btn">Procedi al Checkout</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>L457</h3>
+                    <p>Il tuo brand di streetwear preferito</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Link Utili</h4>
+                    <ul>
+                        <li><a href="#home">Home</a></li>
+                        <li><a href="#products">Prodotti</a></li>
+                        <li><a href="#gallery">Galleria</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Contatti</h4>
+                    <p>Email: info@l457.com</p>
+                    <p>Tel: +39 123 456 7890</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 L457. Tutti i diritti riservati.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>

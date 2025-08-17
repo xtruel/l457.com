@@ -1,0 +1,11 @@
+<svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="200" fill="#f7b731"/>
+  <text x="150" y="90" font-family="Arial, sans-serif" font-size="18" font-weight="bold" text-anchor="middle" fill="white">
+    FASHION FORWARD
+  </text>
+  <text x="150" y="120" font-family="Arial, sans-serif" font-size="14" text-anchor="middle" fill="white">
+    2024 Collection
+  </text>
+  <ellipse cx="100" cy="50" rx="25" ry="15" fill="white" opacity="0.4"/>
+  <ellipse cx="200" cy="150" rx="20" ry="25" fill="white" opacity="0.4"/>
+</svg>

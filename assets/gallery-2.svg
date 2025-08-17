@@ -1,0 +1,9 @@
+<svg width="300" height="200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="300" height="200" fill="#45b7d1"/>
+  <text x="150" y="100" font-family="Arial, sans-serif" font-size="20" font-weight="bold" text-anchor="middle" fill="white">
+    URBAN STYLE
+  </text>
+  <rect x="50" y="50" width="60" height="40" fill="white" opacity="0.4" rx="5"/>
+  <rect x="190" y="110" width="60" height="40" fill="white" opacity="0.4" rx="5"/>
+  <polygon points="150,30 170,60 130,60" fill="white" opacity="0.5"/>
+</svg>
