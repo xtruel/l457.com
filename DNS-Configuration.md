@@ -1,5 +1,15 @@
 # Configurazione DNS per l457.com
 
+## ⚠️ PROBLEMA RILEVATO
+
+**Problema**: Il dominio l457.com attualmente risolve verso `195.110.124.133`, ma GitHub Pages richiede indirizzi IP specifici.
+
+**Risoluzione DNS Attuale**:
+- l457.com → 195.110.124.133 ❌ (ERRATO)
+
+**Risoluzione DNS Richiesta**:
+- l457.com → 185.199.108.153 (e altri IP di GitHub Pages) ✅
+
 ## 📋 Record DNS Necessari
 
 Per rendere il sito accessibile tramite https://l457.com, devi configurare i seguenti record DNS presso il tuo provider di dominio:
