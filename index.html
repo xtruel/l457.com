@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L457 - Tech, Design & Music</title>
+    <meta name="description" content="Guide e news su tecnologia, graphic design e produzione musicale">
+    <meta property="og:title" content="L457 - Tech, Design & Music">
+    <meta property="og:description" content="Guide e news su tecnologia, graphic design e produzione musicale">
+    <meta property="og:type" content="website">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header glassmorphism -->
+    <header class="header">
+        <div class="header-content">
+            <h1 class="logo">L457</h1>
+            <div class="header-actions">
+                <button class="search-btn" id="searchBtn">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main content -->
+    <main class="main-content">
+        <!-- Featured slider -->
+        <section class="featured-section">
+            <h2 class="section-title">In Evidenza</h2>
+            <div class="featured-slider" id="featuredSlider">
+                <!-- Featured posts will be injected here -->
+            </div>
+        </section>
+
+        <!-- Category filters -->
+        <section class="categories-section">
+            <div class="category-chips">
+                <button class="category-chip active" data-category="all">Tutti</button>
+                <button class="category-chip" data-category="tech">Tech</button>
+                <button class="category-chip" data-category="design">Design</button>
+                <button class="category-chip" data-category="music">Music</button>
+                <button class="category-chip" data-category="news">News</button>
+            </div>
+        </section>
+
+        <!-- Posts grid -->
+        <section class="posts-section">
+            <div class="posts-grid" id="postsGrid">
+                <!-- Posts will be injected here -->
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom navigation -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-page="home">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                <polyline points="9,22 9,12 15,12 15,22"></polyline>
+            </svg>
+            <span>Home</span>
+        </button>
+        <button class="nav-item" data-page="categories">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Categorie</span>
+        </button>
+        <button class="nav-item" data-page="bookmarks">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"></path>
+            </svg>
+            <span>Salvati</span>
+        </button>
+    </nav>
+
+    <!-- Article view overlay -->
+    <div class="article-overlay" id="articleOverlay">
+        <div class="article-header">
+            <button class="back-btn" id="backBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="15,18 9,12 15,6"></polyline>
+                </svg>
+            </button>
+            <button class="share-btn" id="shareBtn">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="18" cy="5" r="3"></circle>
+                    <circle cx="6" cy="12" r="3"></circle>
+                    <circle cx="18" cy="19" r="3"></circle>
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+                </svg>
+            </button>
+        </div>
+        <div class="article-content" id="articleContent">
+            <!-- Article content will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Search overlay -->
+    <div class="search-overlay" id="searchOverlay">
+        <div class="search-header">
+            <input type="text" class="search-input" placeholder="Cerca articoli..." id="searchInput">
+            <button class="search-close" id="searchClose">Annulla</button>
+        </div>
+        <div class="search-results" id="searchResults">
+            <!-- Search results will appear here -->
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
