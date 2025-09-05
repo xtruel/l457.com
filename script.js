@@ -227,12 +227,13 @@ function init() {
 }
 
 // Firebase setup
-let fbApp, fbAuth, db;
+let fbApp, fbAuth, db, storage;
 function initFirebase() {
   if (!window.FIREBASE_CONFIG) return;
   fbApp = firebase.initializeApp(window.FIREBASE_CONFIG);
   fbAuth = firebase.auth();
   db = firebase.firestore();
+  try { if (firebase.storage) storage = firebase.storage(); } catch(_) { storage = null; }
 }
 
 // Username management (unique, no password)
@@ -330,10 +331,140 @@ function bindAdminUI() {
 
   if (!overlay) return; // allow binding without a visible Admin button
 
-  // If a visible Admin button exists, use it. Otherwise rely on #/admin link.
   if (btn) btn.addEventListener('click', () => overlay.classList.add('open'));
   closeBtn?.addEventListener('click', () => overlay.classList.remove('open'));
 
+  // Live preview bindings
+  const titleEl = document.getElementById('postTitle');
+  const excerptEl = document.getElementById('postExcerpt');
+  const categoryEl = document.getElementById('postCategory');
+  const readEl = document.getElementById('postReadTime');
+  const coverUrlEl = document.getElementById('postCover');
+  const cardTitle = document.getElementById('cardTitle');
+  const cardExcerpt = document.getElementById('cardExcerpt');
+  const cardMeta = document.getElementById('cardMeta');
+  const cardThumb = document.getElementById('cardThumb');
+  const coverPreview = document.getElementById('coverPreview');
+  const contentPreview = document.getElementById('contentLivePreview');
+
+  function refreshCard() {
+    const t = titleEl?.value?.trim() || 'Titolo';
+    const ex = excerptEl?.value?.trim() || 'Estratto...';
+    const cat = categoryEl?.value || 'tech';
+    const rt = readEl?.value || '5 min';
+    const cu = coverUrlEl?.value?.trim() || '';
+    if (cardTitle) cardTitle.textContent = t;
+    if (cardExcerpt) cardExcerpt.textContent = ex;
+    if (cardMeta) cardMeta.textContent = `${cat} · ${rt}`;
+    if (cardThumb) cardThumb.style.backgroundImage = cu ? `url(${cu})` : '';
+    if (coverPreview && cu) coverPreview.src = cu;
+  }
+  [titleEl, excerptEl, categoryEl, readEl, coverUrlEl].forEach(el => el?.addEventListener('input', refreshCard));
+  refreshCard();
+
+  // Live content preview
+  const contentTA = document.getElementById('postContent');
+  function updateLivePreview() {
+    if (!contentPreview) return;
+    const html = contentTA?.value || '';
+    contentPreview.innerHTML = html;
+  }
+  window.updateLivePreview = updateLivePreview;
+  contentTA?.addEventListener('input', updateLivePreview);
+  updateLivePreview();
+
+  // Copy Cover URL
+  document.getElementById('coverCopyUrl')?.addEventListener('click', async () => {
+    const url = coverUrlEl?.value?.trim();
+    if (!url) return;
+    try { await navigator.clipboard.writeText(url); info.textContent = 'URL copiato negli appunti'; } catch { info.textContent = 'Copia non riuscita'; }
+  });
+
+  // Drag & drop previews
+  function wireDropZone(zoneId, inputId, onFiles) {
+    const z = document.getElementById(zoneId);
+    const inp = document.getElementById(inputId);
+    if (!z || !inp) return;
+    z.addEventListener('click', () => inp.click());
+    ['dragover','dragenter'].forEach(ev => z.addEventListener(ev, e => { e.preventDefault(); z.classList.add('drag'); }));
+    ['dragleave','drop'].forEach(ev => z.addEventListener(ev, e => { e.preventDefault(); z.classList.remove('drag'); }));
+    z.addEventListener('drop', e => { const files = Array.from(e.dataTransfer.files||[]); if (files.length) { inp.files = e.dataTransfer.files; onFiles(files); } });
+    inp.addEventListener('change', () => onFiles(Array.from(inp.files||[])));
+  }
+
+  wireDropZone('coverDrop','coverFile', (files) => {
+    const f = files[0]; if (!f) return;
+    const isGif = /\.gif$/i.test(f.name) || f.type === 'image/gif';
+    const reader = new FileReader();
+    reader.onload = () => { coverUrlEl.value = reader.result; refreshCard(); if (isGif) info.textContent = 'GIF rilevata: nessun crop 16:9, viene mantenuta l\'animazione.'; };
+    reader.readAsDataURL(f);
+  });
+
+  wireDropZone('contentDrop','contentFile', (files) => {
+     // Only quick local preview of first 4 thumbs
+     const thumbs = document.getElementById('contentThumbs');
+     if (thumbs) thumbs.innerHTML = '';
+     files.slice(0,4).forEach(f => {
+       const reader = new FileReader();
+       reader.onload = () => {
+         const img = document.createElement('img'); img.src = reader.result; thumbs?.appendChild(img);
+       };
+       reader.readAsDataURL(f);
+     });
+   });
+   // YouTube helpers
+   const ytInput = document.getElementById('ytInput');
+   const ytPreview = document.getElementById('ytPreview');
+   function extractYouTubeId(input) {
+     if (!input) return '';
+     const m = String(input).match(/(?:v=|youtu\.be\/|embed\/|shorts\/)?([A-Za-z0-9_-]{11})/);
+     return m ? m[1] : '';
+   }
+   document.getElementById('ytPreviewBtn')?.addEventListener('click', () => {
+     const id = extractYouTubeId(ytInput?.value?.trim());
+     ytPreview.innerHTML = id ? `<iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe>` : '<div class="hint">ID/URL non valido</div>';
+   });
+   document.getElementById('ytInsertBtn')?.addEventListener('click', () => {
+     const id = extractYouTubeId(ytInput?.value?.trim());
+     if (!id) { info.textContent = 'YouTube ID non valido'; return; }
+     const ta = document.getElementById('postContent');
+     const embed = `\n<div class=\"article\">\n  <div class=\"video\">\n    <iframe width=\"560\" height=\"315\" src=\"https://www.youtube.com/embed/${id}\" title=\"YouTube video\" frameborder=\"0\" allowfullscreen></iframe>\n  </div>\n</div>\n`;
+     ta.value = (ta.value || '') + embed;
+     if (typeof updateLivePreview === 'function') updateLivePreview();
+     info.textContent = 'Embed YouTube inserito nel contenuto.';
+   });
+   // Content images upload and insert
+   const contentFile = document.getElementById('contentFile');
+  const contentThumbs = document.getElementById('contentThumbs');
+  document.getElementById('contentUploadBtn')?.addEventListener('click', async () => {
+    const files = Array.from(contentFile?.files || []);
+    if (!files.length) { info.textContent = 'Seleziona una o più immagini'; return; }
+    const ta = document.getElementById('postContent');
+    const urls = [];
+    for (const f of files) {
+      if (storage) {
+        try {
+          const ref = storage.ref().child(`content/${Date.now()}_${f.name}`);
+          await ref.put(f);
+          const url = await ref.getDownloadURL();
+          urls.push(url);
+        } catch (e) { info.textContent = 'Upload immagine fallito per ' + f.name; }
+      } else {
+        const reader = new FileReader();
+        const url = await new Promise(res => { reader.onload = () => res(reader.result); reader.readAsDataURL(f); });
+        urls.push(url);
+      }
+    }
+    // Insert into content
+    for (const u of urls) {
+      ta.value += `\n<p><img src="${u}" alt="" /></p>\n`;
+      const img = document.createElement('img');
+      img.src = u; contentThumbs?.appendChild(img);
+    }
+    info.textContent = 'Immagini inserite nel contenuto.';
+  });
+
+  // Auth logic
   authBtn?.addEventListener('click', async () => {
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
@@ -351,19 +482,23 @@ function bindAdminUI() {
     }
   });
 
-  // Local password unlock (for local dev only)
-  pwdUnlock?.addEventListener('click', () => {
+  // Local password unlock (disabled on production)
+  const isLocalHost = ['localhost','127.0.0.1'].includes(location.hostname);
+  const expected = isLocalHost ? (window.LOCAL_ADMIN?.password) : null;
+  // Disable local unlock controls on production to avoid accidental exposure
+  if (!isLocalHost) {
+    document.getElementById('adminPwd')?.setAttribute('disabled', 'true');
+    document.getElementById('adminPwdUnlock')?.setAttribute('disabled', 'true');
+  }
+  document.getElementById('adminPwdUnlock')?.addEventListener('click', () => {
+    if (!isLocalHost) { info.textContent = 'Local unlock is disabled on production. Please use Google Sign in.'; return; }
     const provided = (pwdInput?.value || '').trim();
-    const expected = window.LOCAL_ADMIN?.password;
     if (!expected) { info.textContent = 'Local password not configured.'; return; }
-    if (provided === expected) {
-      info.textContent = 'Local admin unlocked. You can publish.';
-      form.style.display = '';
-    } else {
-      info.textContent = 'Wrong password.';
-    }
+    if (provided === expected) { info.textContent = 'Local admin unlocked. You can publish.'; form.style.display = ''; }
+    else { info.textContent = 'Wrong password.'; }
   });
 
+  // Existing publish handler remains unchanged below
   document.getElementById('publishPost')?.addEventListener('click', async () => {
     if (!db) { info.textContent = 'Firebase not initialized'; return; }
     const slug = document.getElementById('postSlug').value.trim();

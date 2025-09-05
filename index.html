@@ -1,231 +1,222 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>L457 - Tech, Design & Music</title>
-    <meta name="description" content="Guides and news on technology, design and music production">
-    <meta property="og:title" content="L457 - Tech, Design & Music">
-    <meta property="og:description" content="Guides and news on technology, design and music production">
-    <meta property="og:type" content="website">
-    <link rel="stylesheet" href="styles.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js"></script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>L457 – Tech, Design & Music</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+  <!-- Storage (for image uploads). Safe to include; we check availability at runtime. -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script defer src="script.js"></script>
 </head>
 <body>
-    <!-- Header glassmorphism -->
-    <header class="header">
-        <div class="header-content">
-            <h1 class="logo">L457</h1>
-            <div class="header-actions">
-                <button class="search-btn" id="searchBtn">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <path d="m21 21-4.35-4.35"></path>
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </header>
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">L457</div>
+      <div class="header-actions">
+        <button class="search-btn" id="searchBtn">Search</button>
+      </div>
+    </div>
+  </header>
 
-    <!-- Main content -->
-    <main class="main-content">
-        <!-- Featured slider -->
-        <section class="featured-section">
-            <h2 class="section-title">Featured</h2>
-            <div class="featured-slider" id="featuredSlider">
-                <!-- Featured posts will be injected here -->
-            </div>
-        </section>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const headerActions = document.querySelector('.header-actions');
+      if (headerActions && !document.getElementById('adminBtn')) {
+        const btn = document.createElement('button');
+        btn.className = 'admin-btn';
+        btn.id = 'adminBtn';
+        btn.textContent = 'Admin';
+        headerActions.appendChild(btn);
+      }
+    });
+  </script>
 
-        <!-- Category filters -->
-        <section class="categories-section">
-            <div class="category-chips">
-                <button class="category-chip active" data-category="all">All</button>
-                <button class="category-chip" data-category="tech">Tech</button>
-                <button class="category-chip" data-category="design">Design</button>
-                <button class="category-chip" data-category="music">Music</button>
-                <button class="category-chip" data-category="news">News</button>
-            </div>
-        </section>
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+    <div class="section-title">Featured</div>
+    <div id="featuredSlider" class="featured-slider"></div>
 
-        <!-- Posts grid -->
-        <section class="posts-section">
-            <div class="posts-grid" id="postsGrid">
-                <!-- Posts will be injected here -->
-            </div>
-        </section>
-    </main>
-
-    <!-- Bottom navigation -->
-    <nav class="bottom-nav">
-        <button class="nav-item active" data-page="home">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
-                <polyline points="9,22 9,12 15,12 15,22"></polyline>
-            </svg>
-            <span>Home</span>
-        </button>
-        <button class="nav-item" data-page="categories">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="7" height="7"></rect>
-                <rect x="14" y="3" width="7" height="7"></rect>
-                <rect x="14" y="14" width="7" height="7"></rect>
-                <rect x="3" y="14" width="7" height="7"></rect>
-            </svg>
-            <span>Categories</span>
-        </button>
-        <button class="nav-item" data-page="bookmarks">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z"></path>
-            </svg>
-            <span>Saved</span>
-        </button>
-    </nav>
-
-    <!-- Article view overlay -->
-    <div class="article-overlay" id="articleOverlay">
-        <div class="article-header">
-            <button class="back-btn" id="backBtn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="15,18 9,12 15,6"></polyline>
-                </svg>
-            </button>
-            <button class="share-btn" id="shareBtn">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="18" cy="5" r="3"></circle>
-                    <circle cx="6" cy="12" r="3"></circle>
-                    <circle cx="18" cy="19" r="3"></circle>
-                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-                </svg>
-            </button>
-        </div>
-        <div class="article-content" id="articleContent">
-            <!-- Article content will be loaded here -->
-        </div>
-        <div class="comments-wrap" id="commentsWrap">
-            <h3 class="comments-title">Comments</h3>
-            <div id="commentsList" class="comments-list"></div>
-            <div class="comment-form">
-                <textarea id="commentText" class="comment-text" rows="3" placeholder="Write a comment..."></textarea>
-                <button id="commentSubmit" class="comment-submit">Post</button>
-            </div>
-        </div>
+    <div class="section-title">Categories</div>
+    <div class="category-chips">
+      <button class="category-chip active" data-category="all">All</button>
+      <button class="category-chip" data-category="tech">Tech</button>
+      <button class="category-chip" data-category="design">Design</button>
+      <button class="category-chip" data-category="music">Music</button>
+      <button class="category-chip" data-category="news">News</button>
     </div>
 
-    <!-- Search overlay -->
-    <div class="search-overlay" id="searchOverlay">
-        <div class="search-header">
-            <input type="text" class="search-input" placeholder="Search articles..." id="searchInput">
-            <button class="search-close" id="searchClose">Cancel</button>
-        </div>
-        <div class="search-results" id="searchResults">
-            <!-- Search results will appear here -->
-        </div>
+    <div id="postsGrid" class="posts-grid"></div>
+  </main>
+
+  <!-- Article Overlay -->
+  <div class="article-overlay" id="articleOverlay">
+    <div class="article-header">
+      <button class="back-btn" id="backBtn">Back</button>
+      <div style="flex:1"></div>
+      <button class="share-btn" id="shareBtn">Share</button>
     </div>
-
-    <!-- Admin Button in Header -->
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        const headerActions = document.querySelector('.header-actions');
-        if (headerActions && !document.getElementById('adminBtn')) {
-          const btn = document.createElement('button');
-          btn.className = 'admin-btn';
-          btn.id = 'adminBtn';
-          btn.textContent = 'Admin';
-          headerActions.appendChild(btn);
-        }
-      });
-    </script>
-
-    <!-- Admin Overlay -->
-    <div class="admin-overlay" id="adminOverlay">
-      <div class="admin-header">
-        <div class="admin-title">Admin Panel</div>
-        <div class="admin-actions">
-          <button class="admin-close" id="adminClose">Close</button>
-          <button class="admin-auth" id="adminAuthBtn">Sign in</button>
-          <input type="password" id="adminPwd" placeholder="Password" />
-          <button class="admin-auth" id="adminPwdUnlock">Unlock</button>
+    <div class="article-content" id="articleContent"></div>
+    <div class="article-content">
+      <div class="comments-wrap">
+        <div class="comments-title">Comments</div>
+        <div id="commentsList" class="comments-list"></div>
+        <div class="comment-form">
+          <textarea id="commentText" class="comment-text" rows="3" placeholder="Write a comment..."></textarea>
+          <button id="commentSubmit" class="comment-submit">Send</button>
         </div>
       </div>
-      <div class="admin-body">
-        <div class="admin-info" id="adminInfo">Sign in required. Sign in with Google (authorized emails only) or unlock with the local password.</div>
-        <div class="admin-form" id="adminForm" style="display:none;">
-          <div class="form-row">
-            <label>Title</label>
-            <input type="text" id="postTitle" />
-          </div>
-          <div class="form-row">
-            <label>Slug</label>
-            <input type="text" id="postSlug" placeholder="e.g. nano-banana-tutorial" />
-          </div>
-          <div class="form-row">
-            <label>Category</label>
-            <select id="postCategory">
-              <option value="tech">Tech</option>
-              <option value="design">Design</option>
-              <option value="music">Music</option>
-              <option value="news">News</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <label>Cover URL</label>
-            <input type="url" id="postCover" placeholder="https://..." />
-          </div>
-          <div class="form-row">
-            <label>Excerpt</label>
-            <textarea id="postExcerpt" rows="2"></textarea>
-          </div>
-          <div class="form-row">
-            <label>Content (HTML or simple Markdown)</label>
-            <textarea id="postContent" rows="10"></textarea>
+    </div>
+  </div>
+
+  <!-- Search Overlay -->
+  <div class="search-overlay" id="searchOverlay">
+    <div class="search-header">
+      <input id="searchInput" class="search-input" placeholder="Search posts..." />
+      <button class="search-close" id="searchClose">Close</button>
+    </div>
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <!-- Admin Overlay -->
+  <div class="admin-overlay" id="adminOverlay">
+    <div class="admin-header">
+      <div class="admin-title">Admin Panel</div>
+      <div class="admin-actions">
+        <button class="admin-close" id="adminClose">Close</button>
+        <button class="admin-auth" id="adminAuthBtn">Sign in</button>
+        <input type="password" id="adminPwd" placeholder="Password" />
+        <button class="admin-auth" id="adminPwdUnlock">Unlock</button>
+      </div>
+    </div>
+    <div class="admin-body">
+      <div class="admin-info" id="adminInfo">Sign in required. Sign in con Google (email autorizzate) oppure sblocca con password locale per sviluppo.</div>
+      <div class="admin-form" id="adminForm" style="display:none;">
+        <div class="form-row">
+          <label>Title</label>
+          <input type="text" id="postTitle" />
+        </div>
+        <div class="form-row">
+          <label>Slug</label>
+          <input type="text" id="postSlug" placeholder="e.g. nano-banana-tutorial" />
+        </div>
+        <div class="form-row">
+          <label>Category</label>
+          <select id="postCategory">
+            <option value="tech">Tech</option>
+            <option value="design">Design</option>
+            <option value="music">Music</option>
+            <option value="news">News</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Cover URL</label>
+          <input type="url" id="postCover" placeholder="https://..." />
+        </div>
+        <!-- NEW: Cover image upload with preview -->
+        <div class="form-row">
+          <label>Cover image (upload + anteprima)</label>
+          <div class="dropzone" id="coverDrop">
+            <input type="file" id="coverFile" accept="image/*" />
+            <span class="dz-hint">Trascina un'immagine o clicca per selezionare (supporta GIF)</span>
           </div>
           <div class="form-row inline">
-            <label><input type="checkbox" id="postFeatured" /> Featured</label>
-            <label> Read time <input type="text" id="postReadTime" value="5 min" style="width:100px;"/></label>
+            <button id="coverUploadBtn" class="btn-secondary">Upload</button>
+            <label style="display:flex; align-items:center; gap:6px;">
+              <input type="checkbox" id="coverCrop" checked /> Crop 16:9 (no GIF)
+            </label>
+            <button id="coverCopyUrl" class="btn-secondary" title="Copia la cover URL">Copia URL</button>
+            <span class="hint" id="coverUploadHint">Carica su Firebase Storage (se configurato) o usa la URL sopra.</span>
           </div>
-          <div class="form-actions">
-            <button id="publishPost" class="btn-primary">Publish</button>
-            <button id="seedFromLocal" class="btn-secondary" title="Upload current posts (those shown on home) to Firestore">Seed from local files</button>
-            <button id="downloadPost" class="btn-secondary" title="Download post HTML and JSON snippet">Download post files</button>
+          <div class="cover-preview">
+            <div class="preview-16x9">
+              <img id="coverPreview" alt="Cover preview" />
+            </div>
           </div>
+        </div>
+        <div class="form-row">
+          <label>Excerpt</label>
+          <textarea id="postExcerpt" rows="2"></textarea>
+        </div>
+        <div class="form-row">
+          <label>Content (HTML o Markdown semplice)</label>
+          <textarea id="postContent" rows="10"></textarea>
+        </div>
+        <div class="form-row">
+          <label>Anteprima contenuto</label>
+          <div id="contentLivePreview" class="article" style="border:1px solid var(--border); border-radius:12px; padding:12px;"></div>
+        </div>
+        <!-- NEW: YouTube helper with preview -->
+        <div class="form-row">
+          <label>YouTube (URL o ID) + anteprima</label>
+          <div class="form-row inline">
+            <input type="text" id="ytInput" placeholder="https://www.youtube.com/watch?v=..." style="flex:1;" />
+            <button id="ytPreviewBtn" class="btn-secondary">Anteprima</button>
+            <button id="ytInsertBtn" class="btn-secondary">Inserisci nel contenuto</button>
+          </div>
+          <div class="video-preview" id="ytPreview"></div>
+        </div>
+        <!-- NEW: Content images upload -->
+        <div class="form-row">
+          <label>Immagini nel contenuto</label>
+          <div class="dropzone" id="contentDrop">
+            <input type="file" id="contentFile" accept="image/*" multiple />
+            <span class="dz-hint">Trascina qui una o più immagini (supporta GIF)</span>
+          </div>
+        </div>
+        <div class="form-row inline">
+          <button id="contentUploadBtn" class="btn-secondary">Upload e inserisci</button>
+          <span class="hint">Se Firebase Storage non è configurato, verrà inserita una data URL (solo per test).</span>
+        </div>
+        <div class="thumbs" id="contentThumbs"></div>
+        <!-- NEW: Live card preview -->
+        <div class="form-row">
+          <label>Anteprima card</label>
+          <div class="post-card preview-card">
+            <div class="post-thumb" id="cardThumb"></div>
+            <div class="post-body">
+              <div class="post-title" id="cardTitle">Titolo</div>
+              <div class="post-excerpt" id="cardExcerpt">Estratto...</div>
+              <div class="post-meta"><span id="cardMeta">Tech · 5 min</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="form-row inline">
+          <label><input type="checkbox" id="postFeatured" /> Featured</label>
+          <label> Read time <input type="text" id="postReadTime" value="5 min" style="width:100px;"/></label>
+        </div>
+        <div class="form-actions">
+          <button id="publishPost" class="btn-primary">Publish</button>
+          <button id="seedFromLocal" class="btn-secondary" title="Upload current posts (those shown on home) to Firestore">Seed from local files</button>
+          <button id="downloadPost" class="btn-secondary" title="Download post HTML and JSON snippet">Download post files</button>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- Username Claim Overlay -->
-    <div class="username-overlay" id="usernameOverlay">
-      <div class="username-card">
-        <div class="username-header">
-          <div class="username-title">Choose your username</div>
-          <button class="username-close" id="usernameClose">Close</button>
-        </div>
-        <div class="username-body">
-          <input type="text" id="usernameInput" placeholder="e.g. l457fan" />
-          <div class="username-hint">No password. Username is unique and will be reserved on your device.</div>
-          <div class="username-actions">
-            <button id="usernameConfirm" class="btn-primary">Confirm</button>
-          </div>
-          <div id="usernameError" class="form-error" style="display:none;"></div>
+  <!-- Username Claim Overlay -->
+  <div class="username-overlay" id="usernameOverlay">
+    <div class="username-card">
+      <div class="username-header">
+        <div class="username-title">Choose your username</div>
+        <button class="username-close" id="usernameClose">Close</button>
+      </div>
+      <div class="username-body">
+        <input type="text" id="usernameInput" placeholder="e.g. l457fan" />
+        <div class="username-hint">No password. Username is unique and will be reserved on your device.</div>
+        <div class="username-actions">
+          <button id="usernameConfirm" class="btn-primary">Confirm</button>
         </div>
       </div>
+      <div class="form-error" id="usernameError" style="display:none;"></div>
     </div>
-
-    <!-- Place this near the end of body, before closing </body> -->
-    <script>
-      // Hide any visible Admin button if present (no visible link)
-      document.addEventListener('DOMContentLoaded', () => {
-        const btn = document.getElementById('adminBtn');
-        if (btn) btn.style.display = 'none';
-      });
-    </script>
-    <script src="script.js"></script>
+  </div>
 </body>
 </html>
