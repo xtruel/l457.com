@@ -1154,7 +1154,7 @@ function bindAdminUI() {
       if (post) {
         // Preserva tutti i metadati esistenti
         document.getElementById('postTitle').value = post.title || '';
-        document.getElementById('postSlug').value = post.slug || '';
+        // Slug generato automaticamente dal titolo
         document.getElementById('postCategory').value = post.category || '';
         document.getElementById('postExcerpt').value = post.excerpt || '';
         document.getElementById('postContent').value = post.content || '';
@@ -1189,11 +1189,22 @@ function bindAdminUI() {
     return null;
   }
   
+  // Generate slug from title
+  function generateSlug(title) {
+    return title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .trim('-');
+  }
+
   // Save post with metadata preservation
   function savePostWithMetadata() {
+    const title = document.getElementById('postTitle').value;
     const postData = {
-      title: document.getElementById('postTitle').value,
-      slug: document.getElementById('postSlug').value,
+      title: title,
+      slug: generateSlug(title),
       category: document.getElementById('postCategory').value,
       excerpt: document.getElementById('postExcerpt').value,
       content: document.getElementById('postContent').value,
@@ -1221,63 +1232,103 @@ function bindAdminUI() {
     return postData;
   }
 
-  // Existing publish handler with metadata preservation
-  document.getElementById('publishPost')?.addEventListener('click', async () => {
-    if (!db) { info.textContent = 'Firebase not initialized'; return; }
+  // Publish handler - moved inside bindAdminUI to ensure proper binding
+  const publishBtn = document.getElementById('publishPost');
+  if (publishBtn) {
+    publishBtn.addEventListener('click', async () => {
     const postData = savePostWithMetadata();
     const { slug, title, category, coverUrl, excerpt, content, metadata } = postData;
     const featured = document.getElementById('postFeatured').checked;
     const readTime = document.getElementById('postReadTime').value.trim() || '5 min';
 
     if (!slug || !title) { info.textContent = 'Slug and title are required'; return; }
-    const postDoc = db.collection('posts').doc(slug);
-    await postDoc.set({ 
+    
+    const postObject = {
       slug, title, category, 
       cover: coverUrl, excerpt, featured, readTime, 
       date: metadata.createdAt ? metadata.createdAt.slice(0,10) : new Date().toISOString().slice(0,10), 
       contentHtml: content,
       metadata: metadata
-    }, { merge: true });
-    info.textContent = 'Published with metadata preserved! Refresh the home to see the new post.';
-  });
-
-  document.getElementById('seedFromLocal')?.addEventListener('click', async () => {
-    if (!db) { info.textContent = 'Firebase not initialized'; return; }
-    try {
-      info.textContent = 'Seeding in progress...';
-      for (const p of posts) {
-        const docRef = db.collection('posts').doc(p.slug);
-        await docRef.set({
-          slug: p.slug,
-          title: p.title,
-          category: p.category,
-          date: p.date || new Date().toISOString().slice(0,10),
-          readTime: p.readTime || '5 min',
-          excerpt: p.excerpt || '',
-          cover: p.cover || '',
-          featured: !!p.featured,
-          contentHtml: typeof p.content === 'string' ? p.content : ''
-        }, { merge: true });
+    };
+    
+    // Try Firebase first, fallback to localStorage
+    if (db) {
+      try {
+        const postDoc = db.collection('posts').doc(slug);
+        await postDoc.set(postObject, { merge: true });
+        info.textContent = 'Published to Firebase with metadata preserved! Refresh the home to see the new post.';
+      } catch (e) {
+        info.textContent = 'Firebase error, saving locally: ' + e.message;
+        saveToLocalStorage(slug, postObject);
       }
-      info.textContent = 'Seeding complete. Refresh the home to load Firestore data.';
-    } catch (e) {
-      info.textContent = 'Error during seeding.';
+    } else {
+      // Save to localStorage as fallback
+      saveToLocalStorage(slug, postObject);
+      info.textContent = 'Published locally! Firebase not configured. Refresh the home to see the new post.';
     }
-  });
+    });
+  }
+   
+   function saveToLocalStorage(slug, postObject) {
+     try {
+       const savedPosts = JSON.parse(localStorage.getItem('blog_posts') || '{}');
+       savedPosts[slug] = postObject;
+       localStorage.setItem('blog_posts', JSON.stringify(savedPosts));
+       
+       // Also update the global posts array for immediate display
+       const existingIndex = posts.findIndex(p => p.slug === slug);
+       if (existingIndex >= 0) {
+         posts[existingIndex] = postObject;
+       } else {
+         posts.unshift(postObject);
+       }
+     } catch (e) {
+       console.error('Error saving to localStorage:', e);
+     }
+   }
 
-  document.getElementById('downloadPost')?.addEventListener('click', () => {
-    const slug = document.getElementById('postSlug').value.trim();
-    const title = document.getElementById('postTitle').value.trim();
-    const category = document.getElementById('postCategory').value;
-    const cover = document.getElementById('postCover').value.trim();
-    const excerpt = document.getElementById('postExcerpt').value.trim();
-    const content = document.getElementById('postContent').value.trim();
-    const featured = document.getElementById('postFeatured').checked;
-    const readTime = document.getElementById('postReadTime').value.trim() || '5 min';
-    if (!slug || !title) { info.textContent = 'Slug and title are required'; return; }
+  const seedBtn = document.getElementById('seedFromLocal');
+  if (seedBtn) {
+    seedBtn.addEventListener('click', async () => {
+      if (!db) { info.textContent = 'Firebase not initialized'; return; }
+      try {
+        info.textContent = 'Seeding in progress...';
+        for (const p of posts) {
+          const docRef = db.collection('posts').doc(p.slug);
+          await docRef.set({
+            slug: p.slug,
+            title: p.title,
+            category: p.category,
+            date: p.date || new Date().toISOString().slice(0,10),
+            readTime: p.readTime || '5 min',
+            excerpt: p.excerpt || '',
+            cover: p.cover || '',
+            featured: !!p.featured,
+            contentHtml: typeof p.content === 'string' ? p.content : ''
+          }, { merge: true });
+        }
+        info.textContent = 'Seeding complete. Refresh the home to load Firestore data.';
+      } catch (e) {
+        info.textContent = 'Error during seeding.';
+      }
+    });
+  }
 
-    const htmlContent = content || '<div class="article"><p>(No content)</p></div>';
-    const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+  const downloadBtn = document.getElementById('downloadPost');
+  if (downloadBtn) {
+    downloadBtn.addEventListener('click', () => {
+      const title = document.getElementById('postTitle').value.trim();
+      const slug = generateSlug(title);
+      const category = document.getElementById('postCategory').value;
+      const cover = document.getElementById('postCover').value.trim();
+      const excerpt = document.getElementById('postExcerpt').value.trim();
+      const content = document.getElementById('postContent').value.trim();
+      const featured = document.getElementById('postFeatured').checked;
+      const readTime = document.getElementById('postReadTime').value.trim() || '5 min';
+      if (!title) { info.textContent = 'Title is required'; return; }
+
+      const htmlContent = content || '<div class="article"><p>(No content)</p></div>';
+      const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
     const jsonObj = { slug, title, category, date: new Date().toISOString().slice(0,10), readTime, excerpt, cover, featured };
     const jsonBlob = new Blob([JSON.stringify(jsonObj, null, 2)], { type: 'application/json' });
 
@@ -1288,10 +1339,11 @@ function bindAdminUI() {
       URL.revokeObjectURL(url);
     }
 
-    triggerDownload(`${slug}.html`, htmlBlob);
-    triggerDownload(`${slug}.json`, jsonBlob);
-    info.textContent = 'Downloads ready: HTML and JSON snippet.';
-  });
+      triggerDownload(`${slug}.html`, htmlBlob);
+      triggerDownload(`${slug}.json`, jsonBlob);
+      info.textContent = 'Downloads ready: HTML and JSON snippet.';
+    });
+  }
 }
 
 // Load posts from Firestore (if available)
@@ -1318,13 +1370,50 @@ async function fetchPostsFromFirestore() {
 async function initDynamicContent() {
   initFirebase();
   try {
+    // Load posts from localStorage first
+    const localPosts = loadPostsFromLocalStorage();
+    
+    // Try to fetch from Firebase
     const remote = await fetchPostsFromFirestore();
+    
+    // Combine local and remote posts, avoiding duplicates
+    const allPosts = [];
+    const slugSet = new Set();
+    
+    // Add Firebase posts first (they have priority)
     if (remote && remote.length) {
-      posts.splice(0, posts.length, ...remote);
+      remote.forEach(post => {
+        if (!slugSet.has(post.slug)) {
+          allPosts.push(post);
+          slugSet.add(post.slug);
+        }
+      });
+    }
+    
+    // Add local posts that aren't already in Firebase
+    localPosts.forEach(post => {
+      if (!slugSet.has(post.slug)) {
+        allPosts.push(post);
+        slugSet.add(post.slug);
+      }
+    });
+    
+    // Update posts array if we have any content
+    if (allPosts.length > 0) {
+      posts.splice(0, posts.length, ...allPosts);
       renderFeatured();
       renderPosts();
     }
   } catch {}
+}
+
+function loadPostsFromLocalStorage() {
+  try {
+    const savedPosts = JSON.parse(localStorage.getItem('blog_posts') || '{}');
+    return Object.values(savedPosts).sort((a, b) => new Date(b.date) - new Date(a.date));
+  } catch {
+    return [];
+  }
 }
 
 // Hook comments when opening article
