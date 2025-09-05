@@ -141,7 +141,7 @@
           <div class="editor-toolbar">
             <button type="button" id="insertImageBtn" class="btn-secondary" title="Inserisci immagine nella posizione del cursore">📷 Aggiungi immagine qua</button>
             <button type="button" id="insertYouTubeBtn" class="btn-secondary" title="Inserisci video YouTube nella posizione del cursore">🎥 Aggiungi video qua</button>
-            <button type="button" id="previewToggle" class="btn-secondary" title="Mostra/nascondi anteprima in tempo reale">👁️ Preview</button>
+            <button type="button" id="previewToggle" class="btn-secondary" title="Passa tra editor, preview e anteprima articolo finale">👁️ Preview</button>
           </div>
           <div class="editor-container">
             <textarea id="postContent" rows="15" placeholder="Scrivi il contenuto del tuo articolo qui..."></textarea>
@@ -221,26 +221,80 @@
   <!-- Image Insert Modal -->
   <div class="image-insert-overlay" id="imageInsertOverlay"></div>
   <div class="image-insert-modal" id="imageInsertModal" style="display:none;">
-    <h3>Inserisci Immagine</h3>
+    <h3>Inserisci Immagine/i</h3>
+    
+    <!-- Layout Options -->
+     <div class="form-row">
+       <label>Layout immagini:</label>
+       <div class="layout-options">
+         <label class="layout-option">
+           <input type="radio" name="imageLayout" value="single" checked>
+           <span>📷 Singola</span>
+         </label>
+         <label class="layout-option">
+           <input type="radio" name="imageLayout" value="grid-2">
+           <span>🖼️ Griglia 2x</span>
+         </label>
+         <label class="layout-option">
+           <input type="radio" name="imageLayout" value="grid-3">
+           <span>🖼️ Griglia 3x</span>
+         </label>
+         <label class="layout-option">
+           <input type="radio" name="imageLayout" value="gallery">
+           <span>🎨 Galleria</span>
+         </label>
+       </div>
+     </div>
+     
+     <!-- Layout Controls -->
+     <div class="form-row" id="layoutControls" style="display:none;">
+       <label>Controlli layout:</label>
+       <div class="layout-controls">
+         <label class="control-option">
+           <input type="checkbox" id="uniformAspect" checked>
+           <span>📐 Proporzioni uniformi</span>
+         </label>
+         <label class="control-option">
+           <input type="checkbox" id="equalHeight" checked>
+           <span>📏 Altezza uniforme</span>
+         </label>
+       </div>
+       <div class="spacing-controls">
+         <label for="imageSpacing">Spaziatura:</label>
+         <input type="range" id="imageSpacing" min="4" max="24" value="12" step="2">
+         <span id="spacingValue">12px</span>
+       </div>
+     </div>
+    
+    <!-- File Upload Section -->
     <div class="form-row">
       <label>Carica da file:</label>
       <div class="dropzone" style="margin-bottom: 12px;">
-        <input type="file" id="modalImageFile" accept="image/*" />
-        <span class="dz-hint">Trascina qui un'immagine o clicca per selezionare</span>
+        <input type="file" id="modalImageFile" accept="image/*" multiple />
+        <span class="dz-hint">Trascina qui una o più immagini o clicca per selezionare</span>
       </div>
+      <div class="image-preview-grid" id="modalImagePreview"></div>
       <button id="modalUploadBtn" class="btn-primary">📤 Carica e Inserisci</button>
     </div>
+    
+    <!-- URL Section -->
     <div class="form-row">
-      <label>Oppure inserisci URL:</label>
-      <input type="url" id="modalImageUrl" placeholder="https://esempio.com/immagine.jpg" />
+      <label>Oppure inserisci URL (una per riga):</label>
+      <textarea id="modalImageUrls" placeholder="https://esempio.com/immagine1.jpg&#10;https://esempio.com/immagine2.jpg" rows="3"></textarea>
       <input type="text" id="modalImageAlt" placeholder="Testo alternativo (opzionale)" style="margin-top: 8px;" />
     </div>
+    
+    <!-- Layout Preview -->
+    <div class="form-row" id="layoutPreviewSection" style="display:none;">
+      <label>Anteprima layout:</label>
+      <div class="layout-preview" id="layoutPreview"></div>
+    </div>
+    
     <div class="form-row inline" style="margin-top: 16px;">
       <button id="modalInsertUrlBtn" class="btn-primary">✅ Inserisci URL</button>
       <button id="modalCancelBtn" class="btn-secondary">❌ Annulla</button>
     </div>
   </div>
 
-  <script src="script.js"></script>
 </body>
 </html>

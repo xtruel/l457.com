@@ -153,9 +153,11 @@ function openArticle(slug) {
   container.innerHTML = `
     <article class="article">
       <div class="post-meta">${post.category} · ${post.date} · ${post.readTime}</div>
-      ${post.content}
     </article>
   `;
+  // Add content separately to avoid template literal issues with placeholders
+  // Process content through parseContent to convert placeholders to HTML
+  container.querySelector('.article').innerHTML += parseContent(post.content);
   $('#articleOverlay').classList.add('open');
   location.hash = `#/post/${slug}`;
 }
@@ -373,9 +375,26 @@ function bindAdminUI() {
   let isPreviewVisible = false;
   let cursorPosition = 0;
   
+  // Sistema di placeholder per immagini
+  let imageCounter = 1;
+  const imageRegistry = new Map(); // Mappa placeholder -> dati immagine reali
+  
   // Funzione avanzata per il rendering Markdown/HTML
    function parseContent(content) {
      let html = content;
+     
+     // Prima converti i placeholder delle immagini in HTML reale
+     html = html.replace(/\[immagine(\d+)\]/g, (match, num) => {
+       const imageData = imageRegistry.get(match);
+       if (imageData) {
+         if (imageData.type === 'single') {
+           return `<img src="${imageData.url}" alt="${imageData.alt}" style="max-width:100%; border-radius:8px; margin:8px 0; display:block;">`;
+         } else if (imageData.type === 'grid') {
+           return imageData.html;
+         }
+       }
+       return match; // Se non trovato, mantieni il placeholder
+     });
      
      // Converti Markdown in HTML
      html = html
@@ -388,7 +407,7 @@ function bindAdminUI() {
        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
        .replace(/\*(.*?)\*/g, '<em>$1</em>')
        
-       // Links e Immagini
+       // Links e Immagini (solo per immagini markdown normali, non placeholder)
        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%; border-radius:8px; margin:8px 0; display:block;">')
        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
        
@@ -454,33 +473,148 @@ function bindAdminUI() {
     });
   }
   
-  // Toggle preview side-by-side
-  if (previewToggle && editorPreview && editorContainer) {
-    previewToggle.addEventListener('click', () => {
-      isPreviewVisible = !isPreviewVisible;
-      
-      if (isPreviewVisible) {
-        editorPreview.style.display = 'block';
-        editorContainer.classList.add('preview-mode');
-        previewToggle.textContent = '👁️ Nascondi Preview';
-        updateLivePreview();
-      } else {
+  // Enhanced Preview System - Real Post Preview
+  let previewMode = 'code'; // 'code', 'preview', 'article'
+  
+  function updatePreviewMode() {
+    const textarea = document.getElementById('postContent');
+    const editorContainer = document.querySelector('.editor-container');
+    const contentLivePreview = document.getElementById('contentLivePreview');
+    
+    if (!textarea || !editorContainer || !contentLivePreview) return;
+    
+    switch (previewMode) {
+      case 'code':
+        textarea.style.display = 'block';
         editorPreview.style.display = 'none';
-        editorContainer.classList.remove('preview-mode');
+        contentLivePreview.style.display = 'block';
+        editorContainer.classList.remove('preview-mode', 'article-mode');
         previewToggle.textContent = '👁️ Preview';
-      }
+        break;
+        
+      case 'preview':
+        textarea.style.display = 'block';
+        editorPreview.style.display = 'block';
+        contentLivePreview.style.display = 'block';
+        editorContainer.classList.add('preview-mode');
+        editorContainer.classList.remove('article-mode');
+        previewToggle.textContent = '📖 Anteprima Articolo';
+        updateLivePreview();
+        break;
+        
+      case 'article':
+        textarea.style.display = 'none';
+        editorPreview.style.display = 'none';
+        contentLivePreview.style.display = 'none';
+        editorContainer.classList.add('article-mode');
+        editorContainer.classList.remove('preview-mode');
+        previewToggle.textContent = '✏️ Torna Editor';
+        showArticlePreview();
+        break;
+    }
+  }
+  
+  function showArticlePreview() {
+    const title = document.getElementById('postTitle').value.trim() || 'Titolo del Post';
+    const category = document.getElementById('postCategory').value || 'tech';
+    const readTime = document.getElementById('postReadTime').value || '5 min';
+    const content = document.getElementById('postContent').value || '';
+    const coverUrl = document.getElementById('postCover').value.trim();
+    
+    const currentDate = new Date().toLocaleDateString('it-IT', {
+      year: 'numeric',
+      month: 'long', 
+      day: 'numeric'
+    });
+    
+    const renderedContent = parseContent(content);
+    
+    // Crea anteprima articolo completa
+    const articlePreview = document.createElement('div');
+    articlePreview.id = 'articlePreviewContainer';
+    articlePreview.className = 'article-preview-container';
+    
+    articlePreview.innerHTML = `
+      <div class="article-preview-header">
+        <button id="closeArticlePreview" class="close-preview-btn">← Torna all'Editor</button>
+      </div>
+      <article class="article-preview">
+        ${coverUrl ? `<div class="article-cover" style="background-image: url('${coverUrl}')"></div>` : ''}
+        <div class="article-content">
+          <div class="article-meta">
+            <span class="article-category">${category.toUpperCase()}</span>
+            <span class="article-date">${currentDate}</span>
+            <span class="article-read-time">${readTime}</span>
+          </div>
+          <h1 class="article-title">${title}</h1>
+          <div class="article-body">
+            ${renderedContent}
+          </div>
+        </div>
+      </article>
+    `;
+    
+    // Rimuovi preview precedente se esiste
+    const existing = document.getElementById('articlePreviewContainer');
+    if (existing) existing.remove();
+    
+    // Inserisci dopo l'editor container
+    const editorContainer = document.querySelector('.editor-container');
+    editorContainer.parentNode.insertBefore(articlePreview, editorContainer.nextSibling);
+    
+    // Bind close button
+    document.getElementById('closeArticlePreview').addEventListener('click', () => {
+      previewMode = 'code';
+      updatePreviewMode();
+      articlePreview.remove();
     });
   }
   
-  // Image Insert Modal System
+  // Toggle preview system
+  if (previewToggle && editorPreview && editorContainer) {
+    previewToggle.addEventListener('click', () => {
+      switch (previewMode) {
+        case 'code':
+          previewMode = 'preview';
+          break;
+        case 'preview':
+          previewMode = 'article';
+          break;
+        case 'article':
+          previewMode = 'code';
+          // Rimuovi container anteprima articolo
+          const articleContainer = document.getElementById('articlePreviewContainer');
+          if (articleContainer) articleContainer.remove();
+          break;
+      }
+      updatePreviewMode();
+    });
+  }
+  
+  // Multi-Image Insert Modal System
    const imageInsertModal = document.getElementById('imageInsertModal');
    const imageInsertOverlay = document.getElementById('imageInsertOverlay');
    const modalImageFile = document.getElementById('modalImageFile');
-   const modalImageUrl = document.getElementById('modalImageUrl');
+   const modalImageUrls = document.getElementById('modalImageUrls');
    const modalImageAlt = document.getElementById('modalImageAlt');
    const modalUploadBtn = document.getElementById('modalUploadBtn');
    const modalInsertUrlBtn = document.getElementById('modalInsertUrlBtn');
    const modalCancelBtn = document.getElementById('modalCancelBtn');
+   const modalImagePreview = document.getElementById('modalImagePreview');
+   const layoutPreview = document.getElementById('layoutPreview');
+   const layoutPreviewSection = document.getElementById('layoutPreviewSection');
+   const uniformAspectCheckbox = document.getElementById('uniformAspect');
+   const equalHeightCheckbox = document.getElementById('equalHeight');
+   const imageSpacingSlider = document.getElementById('imageSpacing');
+   const spacingValueSpan = document.getElementById('spacingValue');
+   
+   let selectedFiles = [];
+   let selectedLayout = 'single';
+   let layoutSettings = {
+     uniformAspect: true,
+     equalHeight: true,
+     spacing: 12
+   };
    
    // Funzione per inserire testo nella posizione del cursore
    function insertAtCursor(text) {
@@ -496,14 +630,148 @@ function bindAdminUI() {
      updateLivePreview();
    }
    
+   // Genera HTML per layout multi-immagine
+   function generateImageGridHTML(images, layout, altText = '') {
+     const gridClass = `image-grid ${layout}`;
+     const spacing = layoutSettings.spacing;
+     const aspectClass = layoutSettings.uniformAspect ? ' uniform-aspect' : '';
+     const heightClass = layoutSettings.equalHeight ? ' equal-height' : '';
+     
+     const imageElements = images.map((img, index) => {
+       const alt = altText || `Immagine ${index + 1}`;
+       return `<img src="${img}" alt="${alt}" loading="lazy">`;
+     }).join('\n    ');
+     
+     return `\n<div class="${gridClass}${aspectClass}${heightClass}" style="gap: ${spacing}px;">\n    ${imageElements}\n</div>\n`;
+   }
+   
+   // Aggiorna preview del layout
+   function updateLayoutPreview() {
+     if (!layoutPreview) return;
+     
+     const images = selectedFiles.length > 0 ? 
+       selectedFiles.map(f => URL.createObjectURL(f)) : 
+       modalImageUrls.value.split('\n').filter(url => url.trim());
+     
+     if (images.length === 0) {
+       layoutPreviewSection.style.display = 'none';
+       return;
+     }
+     
+     layoutPreviewSection.style.display = 'block';
+     
+     // Genera HTML del layout con impostazioni applicate
+     const previewHTML = generateImageGridHTML(images, selectedLayout);
+     layoutPreview.innerHTML = previewHTML;
+     
+     // Applica le impostazioni di layout al preview
+     const previewGrid = layoutPreview.querySelector('.image-grid');
+     if (previewGrid) {
+       previewGrid.style.gap = layoutSettings.spacing + 'px';
+       
+       // Applica classi per controlli layout
+       previewGrid.classList.toggle('uniform-aspect', layoutSettings.uniformAspect);
+       previewGrid.classList.toggle('equal-height', layoutSettings.equalHeight);
+       
+       // Ridimensiona immagini per preview
+       const previewImages = previewGrid.querySelectorAll('img');
+       previewImages.forEach(img => {
+         img.style.maxHeight = '120px';
+         img.style.objectFit = 'cover';
+       });
+     }
+   }
+   
+   // Aggiorna preview delle immagini selezionate
+   function updateImagePreview() {
+     if (!modalImagePreview) return;
+     
+     modalImagePreview.innerHTML = '';
+     
+     if (selectedFiles.length > 0) {
+       // Crea preview con layout selezionato
+       const fileUrls = selectedFiles.map(file => URL.createObjectURL(file));
+       
+       if (selectedLayout === 'single' && selectedFiles.length === 1) {
+         const item = document.createElement('div');
+         item.className = 'image-preview-item';
+         
+         const img = document.createElement('img');
+         img.src = fileUrls[0];
+         img.alt = selectedFiles[0].name;
+         img.style.maxWidth = '200px';
+         img.style.maxHeight = '150px';
+         img.style.borderRadius = '8px';
+         
+         const removeBtn = document.createElement('button');
+         removeBtn.className = 'remove-btn';
+         removeBtn.innerHTML = '×';
+         removeBtn.onclick = () => {
+           selectedFiles.splice(0, 1);
+           updateImagePreview();
+           updateLayoutPreview();
+         };
+         
+         item.appendChild(img);
+         item.appendChild(removeBtn);
+         modalImagePreview.appendChild(item);
+       } else {
+         // Preview con layout grid
+         selectedFiles.forEach((file, index) => {
+           const item = document.createElement('div');
+           item.className = 'image-preview-item';
+           
+           const img = document.createElement('img');
+           img.src = URL.createObjectURL(file);
+           img.alt = file.name;
+           
+           const removeBtn = document.createElement('button');
+           removeBtn.className = 'remove-btn';
+           removeBtn.innerHTML = '×';
+           removeBtn.onclick = () => {
+             selectedFiles.splice(index, 1);
+             updateImagePreview();
+             updateLayoutPreview();
+           };
+           
+           item.appendChild(img);
+           item.appendChild(removeBtn);
+           modalImagePreview.appendChild(item);
+         });
+       }
+     }
+     
+     updateLayoutPreview();
+   }
+   
    // Mostra modal per inserimento immagine
    function showImageModal() {
      if (imageInsertModal && imageInsertOverlay) {
        imageInsertModal.style.display = 'block';
        imageInsertOverlay.classList.add('open');
-       modalImageUrl.value = '';
+       modalImageUrls.value = '';
        modalImageAlt.value = '';
        modalImageFile.value = '';
+       selectedFiles = [];
+       selectedLayout = 'single';
+       document.querySelector('input[name="imageLayout"][value="single"]').checked = true;
+       
+       // Nascondi controlli layout inizialmente
+       const layoutControls = document.getElementById('layoutControls');
+       if (layoutControls) {
+         layoutControls.style.display = 'none';
+       }
+       
+       // Reset controlli layout ai valori di default
+       if (uniformAspectCheckbox) uniformAspectCheckbox.checked = layoutSettings.uniformAspect;
+       if (equalHeightCheckbox) equalHeightCheckbox.checked = layoutSettings.equalHeight;
+       if (imageSpacingSlider) {
+         imageSpacingSlider.value = layoutSettings.spacing;
+         if (spacingValueSpan) spacingValueSpan.textContent = layoutSettings.spacing + 'px';
+       }
+       
+       updateImagePreview();
+       layoutPreviewSection.style.display = 'none';
      }
    }
    
@@ -512,6 +780,8 @@ function bindAdminUI() {
      if (imageInsertModal && imageInsertOverlay) {
        imageInsertModal.style.display = 'none';
        imageInsertOverlay.classList.remove('open');
+       selectedFiles.forEach(file => URL.revokeObjectURL(URL.createObjectURL(file)));
+       selectedFiles = [];
      }
    }
    
@@ -528,56 +798,174 @@ function bindAdminUI() {
      imageInsertOverlay.addEventListener('click', hideImageModal);
    }
    
-   // Inserisci immagine da URL
+   // Layout selection listeners
+   document.querySelectorAll('input[name="imageLayout"]').forEach(radio => {
+     radio.addEventListener('change', (e) => {
+       selectedLayout = e.target.value;
+       // Mostra/nascondi controlli layout
+       const layoutControls = document.getElementById('layoutControls');
+       if (layoutControls) {
+         layoutControls.style.display = e.target.value !== 'single' ? 'block' : 'none';
+       }
+       updateLayoutPreview();
+     });
+   });
+   
+   // Event listeners per controlli layout
+   if (uniformAspectCheckbox) {
+     uniformAspectCheckbox.addEventListener('change', function() {
+       layoutSettings.uniformAspect = this.checked;
+       updateLayoutPreview();
+     });
+   }
+   
+   if (equalHeightCheckbox) {
+     equalHeightCheckbox.addEventListener('change', function() {
+       layoutSettings.equalHeight = this.checked;
+       updateLayoutPreview();
+     });
+   }
+   
+   if (imageSpacingSlider) {
+     imageSpacingSlider.addEventListener('input', function() {
+       layoutSettings.spacing = parseInt(this.value);
+       if (spacingValueSpan) {
+         spacingValueSpan.textContent = this.value + 'px';
+       }
+       updateLayoutPreview();
+     });
+   }
+   
+   // File selection listener
+   if (modalImageFile) {
+     modalImageFile.addEventListener('change', (e) => {
+       selectedFiles = Array.from(e.target.files);
+       updateImagePreview();
+     });
+   }
+   
+   // URL textarea listener
+   if (modalImageUrls) {
+     modalImageUrls.addEventListener('input', updateLayoutPreview);
+   }
+   
+   // Inserisci immagini da URL
    if (modalInsertUrlBtn) {
      modalInsertUrlBtn.addEventListener('click', () => {
-       const url = modalImageUrl.value.trim();
+       const urls = modalImageUrls.value.split('\n').filter(url => url.trim());
        const alt = modalImageAlt.value.trim() || 'Immagine';
        
-       if (url) {
-         const markdown = `![${alt}](${url})`;
-         insertAtCursor(markdown);
-         hideImageModal();
+       if (urls.length === 0) {
+         alert('Inserisci almeno un URL valido per le immagini');
+         return;
+       }
+       
+       // Genera placeholder e registra i dati reali
+       const placeholder = `[immagine${imageCounter}]`;
+       
+       if (urls.length === 1 && selectedLayout === 'single') {
+         // Singola immagine
+         imageRegistry.set(placeholder, {
+           type: 'single',
+           url: urls[0],
+           alt: alt
+         });
        } else {
-         alert('Inserisci un URL valido per l\'immagine');
+         // Multiple immagini - genera HTML grid e salvalo
+         const gridHtml = generateImageGridHTML(urls, selectedLayout, alt);
+         imageRegistry.set(placeholder, {
+           type: 'grid',
+           html: gridHtml,
+           alt: alt
+         });
+       }
+       
+       insertAtCursor(placeholder);
+       imageCounter++;
+       hideImageModal();
+       
+       // Trigger auto-preview after URL insertion
+       if (typeof autoPreviewAfterUpload === 'function') {
+         autoPreviewAfterUpload();
        }
      });
    }
    
-   // Upload e inserisci immagine
+   // Upload e inserisci immagini
    if (modalUploadBtn && modalImageFile) {
      modalUploadBtn.addEventListener('click', async () => {
-       const file = modalImageFile.files[0];
-       if (!file) {
-         alert('Seleziona un file immagine');
+       if (selectedFiles.length === 0) {
+         alert('Seleziona almeno un file immagine');
          return;
        }
+       
+       // Auto-switch to article preview after image upload
+       const autoPreviewAfterUpload = () => {
+         setTimeout(() => {
+           if (previewMode === 'code') {
+             previewMode = 'article';
+             updatePreviewMode();
+           }
+         }, 1000);
+       };
        
        try {
          modalUploadBtn.textContent = '⏳ Caricamento...';
          modalUploadBtn.disabled = true;
          
-         // Prova prima Firebase Storage se configurato
-         if (window.uploadToFirebase) {
-           const url = await window.uploadToFirebase(file, 'content-images/');
-           const alt = modalImageAlt.value.trim() || file.name.split('.')[0];
-           const markdown = `![${alt}](${url})`;
-           insertAtCursor(markdown);
-         } else {
-           // Fallback: converti in data URL per test locali
-           const reader = new FileReader();
-           reader.onload = (e) => {
-             const alt = modalImageAlt.value.trim() || file.name.split('.')[0];
-             const markdown = `![${alt}](${e.target.result})`;
-             insertAtCursor(markdown);
-           };
-           reader.readAsDataURL(file);
+         const urls = [];
+         const alt = modalImageAlt.value.trim();
+         
+         // Carica tutti i file
+         for (let i = 0; i < selectedFiles.length; i++) {
+           const file = selectedFiles[i];
+           
+           if (window.uploadToFirebase) {
+             // Upload su Firebase Storage
+             const url = await window.uploadToFirebase(file, 'content-images/');
+             urls.push(url);
+           } else {
+             // Fallback: converti in data URL per test locali
+             const dataUrl = await new Promise((resolve) => {
+               const reader = new FileReader();
+               reader.onload = (e) => resolve(e.target.result);
+               reader.readAsDataURL(file);
+             });
+             urls.push(dataUrl);
+           }
          }
          
+         // Genera placeholder e registra i dati reali
+         const placeholder = `[immagine${imageCounter}]`;
+         
+         if (urls.length === 1 && selectedLayout === 'single') {
+           // Singola immagine
+           const altText = alt || selectedFiles[0].name.split('.')[0];
+           imageRegistry.set(placeholder, {
+             type: 'single',
+             url: urls[0],
+             alt: altText
+           });
+         } else {
+           // Multiple immagini - genera HTML grid e salvalo
+           const altText = alt || 'Immagine';
+           const gridHtml = generateImageGridHTML(urls, selectedLayout, altText);
+           imageRegistry.set(placeholder, {
+             type: 'grid',
+             html: gridHtml,
+             alt: altText
+           });
+         }
+         
+         insertAtCursor(placeholder);
+         imageCounter++;
          hideImageModal();
+         
+         // Trigger auto-preview after successful upload
+         autoPreviewAfterUpload();
        } catch (error) {
          console.error('Errore upload:', error);
-         alert('Errore durante il caricamento dell\'immagine');
+         alert('Errore durante il caricamento delle immagini');
        } finally {
          modalUploadBtn.textContent = '📤 Carica e Inserisci';
          modalUploadBtn.disabled = false;
@@ -695,13 +1083,27 @@ function bindAdminUI() {
         urls.push(url);
       }
     }
-    // Insert into content
+    // Insert into content usando placeholder
     for (const u of urls) {
-      ta.value += `\n<p><img src="${u}" alt="" /></p>\n`;
+      const placeholder = `[immagine${imageCounter}]`;
+      imageRegistry.set(placeholder, {
+        type: 'single',
+        url: u,
+        alt: `Immagine ${imageCounter}`
+      });
+      
+      ta.value += `\n${placeholder}\n`;
+      imageCounter++;
+      
       const img = document.createElement('img');
       img.src = u; contentThumbs?.appendChild(img);
     }
     info.textContent = 'Immagini inserite nel contenuto.';
+    
+    // Trigger auto-preview after content upload
+    if (typeof autoPreviewAfterUpload === 'function') {
+      autoPreviewAfterUpload();
+    }
   });
 
   // Auth logic
