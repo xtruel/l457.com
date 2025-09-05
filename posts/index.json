@@ -6,7 +6,7 @@
     "date": "2025-09-01",
     "readTime": "6 min",
     "excerpt": "Come usare il modello di Google per l'editing di immagini: setup, prompt e best practice.",
-    "cover": "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1600&auto=format&fit=crop",
+    "cover": "placeholder.svg",
     "featured": true
   },
   {
@@ -16,7 +16,7 @@
     "date": "2025-08-18",
     "readTime": "4 min",
     "excerpt": "Palette limitata, gerarchia tipografica e griglie per un look d'impatto.",
-    "cover": "https://images.unsplash.com/photo-1489528792649-5a1b962d3daa?q=80&w=1600&auto=format&fit=crop",
+    "cover": "placeholder.svg",
     "featured": true
   },
   {
@@ -26,7 +26,7 @@
     "date": "2025-07-29",
     "readTime": "5 min",
     "excerpt": "Sequencer, drumkits e mix di base con un setup tascabile.",
-    "cover": "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?q=80&w=1600&auto=format&fit=crop",
+    "cover": "placeholder.svg",
     "featured": false
   },
   {
@@ -36,7 +36,7 @@
     "date": "2025-09-03",
     "readTime": "3 min",
     "excerpt": "Una selezione rapida di tool pratici e ispirazioni.",
-    "cover": "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=1600&auto=format&fit=crop",
+    "cover": "placeholder.svg",
     "featured": false
   }
 ]
