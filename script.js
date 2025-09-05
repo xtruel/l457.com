@@ -482,20 +482,20 @@ function bindAdminUI() {
     }
   });
 
-  // Local password unlock (disabled on production)
-  const isLocalHost = ['localhost','127.0.0.1'].includes(location.hostname);
-  const expected = isLocalHost ? (window.LOCAL_ADMIN?.password) : null;
-  // Disable and hide local unlock controls on production to avoid confusion
+  // Local password unlock (enabled for development domains)
+  const isDevelopment = ['localhost','127.0.0.1','l457.com'].includes(location.hostname);
+  const expected = isDevelopment ? (window.LOCAL_ADMIN?.password) : null;
+  // Show local unlock controls on development domains
   const pwdEl = document.getElementById('adminPwd');
   const unlockEl = document.getElementById('adminPwdUnlock');
-  if (!isLocalHost) {
+  if (!isDevelopment) {
     pwdEl?.setAttribute('disabled', 'true');
     unlockEl?.setAttribute('disabled', 'true');
     if (pwdEl) pwdEl.style.display = 'none';
     if (unlockEl) unlockEl.style.display = 'none';
   }
   document.getElementById('adminPwdUnlock')?.addEventListener('click', () => {
-    if (!isLocalHost) { info.textContent = 'Local unlock is disabled on production. Please use Google Sign in.'; return; }
+    if (!isDevelopment) { info.textContent = 'Local unlock is disabled on production. Please use Google Sign in.'; return; }
     const provided = (pwdInput?.value || '').trim();
     if (!expected) { info.textContent = 'Local password not configured.'; return; }
     if (provided === expected) { info.textContent = 'Local admin unlocked. You can publish.'; form.style.display = ''; }
