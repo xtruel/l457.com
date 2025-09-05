@@ -362,16 +362,256 @@ function bindAdminUI() {
   [titleEl, excerptEl, categoryEl, readEl, coverUrlEl].forEach(el => el?.addEventListener('input', refreshCard));
   refreshCard();
 
-  // Live content preview
+  // Advanced Editor System
   const contentTA = document.getElementById('postContent');
-  function updateLivePreview() {
-    if (!contentPreview) return;
-    const html = contentTA?.value || '';
-    contentPreview.innerHTML = html;
+  const editorPreview = document.getElementById('editorPreview');
+  const previewToggle = document.getElementById('previewToggle');
+  const insertImageBtn = document.getElementById('insertImageBtn');
+  const insertYouTubeBtn = document.getElementById('insertYouTubeBtn');
+  const editorContainer = document.querySelector('.editor-container');
+  
+  let isPreviewVisible = false;
+  let cursorPosition = 0;
+  
+  // Funzione avanzata per il rendering Markdown/HTML
+   function parseContent(content) {
+     let html = content;
+     
+     // Converti Markdown in HTML
+     html = html
+       // Headers
+       .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+       .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+       .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+       
+       // Bold e Italic
+       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+       .replace(/\*(.*?)\*/g, '<em>$1</em>')
+       
+       // Links e Immagini
+       .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" style="max-width:100%; border-radius:8px; margin:8px 0; display:block;">')
+       .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank">$1</a>')
+       
+       // Liste non ordinate
+       .replace(/^\* (.+)$/gm, '<li>$1</li>')
+       .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+       
+       // Liste ordinate
+       .replace(/^\d+\. (.+)$/gm, '<li>$1</li>')
+       
+       // Code blocks
+       .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+       .replace(/`([^`]+)`/g, '<code>$1</code>')
+       
+       // Paragrafi (converti doppie newline in paragrafi)
+       .replace(/\n\n/g, '</p><p>')
+       .replace(/^(.+)$/gm, function(match, p1) {
+         // Non wrappare in <p> se è già un tag HTML
+         if (p1.match(/^<(h[1-6]|ul|ol|li|pre|div|img|iframe)/)) {
+           return p1;
+         }
+         return '<p>' + p1 + '</p>';
+       })
+       
+       // Singole newline diventano <br>
+       .replace(/\n/g, '<br>');
+     
+     // Pulisci paragrafi vuoti e duplicati
+     html = html
+       .replace(/<p><\/p>/g, '')
+       .replace(/<p>(<[^>]+>)<\/p>/g, '$1')
+       .replace(/<br><\/p>/g, '</p>')
+       .replace(/<p><br>/g, '<p>');
+     
+     return html;
+   }
+   
+   // Funzione per aggiornare il preview
+   function updateLivePreview() {
+     if (!contentPreview) return;
+     const content = contentTA?.value || '';
+     const rendered = parseContent(content);
+     
+     contentPreview.innerHTML = rendered;
+     if (editorPreview) editorPreview.innerHTML = rendered;
+   }
+  
+  // Live preview del contenuto
+  if (contentTA) {
+    contentTA.addEventListener('input', updateLivePreview);
+    
+    // Traccia posizione cursore
+    contentTA.addEventListener('selectionchange', () => {
+      cursorPosition = contentTA.selectionStart;
+    });
+    
+    contentTA.addEventListener('click', () => {
+      cursorPosition = contentTA.selectionStart;
+    });
+    
+    contentTA.addEventListener('keyup', () => {
+      cursorPosition = contentTA.selectionStart;
+    });
   }
-  window.updateLivePreview = updateLivePreview;
-  contentTA?.addEventListener('input', updateLivePreview);
-  updateLivePreview();
+  
+  // Toggle preview side-by-side
+  if (previewToggle && editorPreview && editorContainer) {
+    previewToggle.addEventListener('click', () => {
+      isPreviewVisible = !isPreviewVisible;
+      
+      if (isPreviewVisible) {
+        editorPreview.style.display = 'block';
+        editorContainer.classList.add('preview-mode');
+        previewToggle.textContent = '👁️ Nascondi Preview';
+        updateLivePreview();
+      } else {
+        editorPreview.style.display = 'none';
+        editorContainer.classList.remove('preview-mode');
+        previewToggle.textContent = '👁️ Preview';
+      }
+    });
+  }
+  
+  // Image Insert Modal System
+   const imageInsertModal = document.getElementById('imageInsertModal');
+   const imageInsertOverlay = document.getElementById('imageInsertOverlay');
+   const modalImageFile = document.getElementById('modalImageFile');
+   const modalImageUrl = document.getElementById('modalImageUrl');
+   const modalImageAlt = document.getElementById('modalImageAlt');
+   const modalUploadBtn = document.getElementById('modalUploadBtn');
+   const modalInsertUrlBtn = document.getElementById('modalInsertUrlBtn');
+   const modalCancelBtn = document.getElementById('modalCancelBtn');
+   
+   // Funzione per inserire testo nella posizione del cursore
+   function insertAtCursor(text) {
+     if (!contentTA) return;
+     
+     const start = contentTA.selectionStart;
+     const end = contentTA.selectionEnd;
+     const value = contentTA.value;
+     
+     contentTA.value = value.substring(0, start) + text + value.substring(end);
+     contentTA.selectionStart = contentTA.selectionEnd = start + text.length;
+     contentTA.focus();
+     updateLivePreview();
+   }
+   
+   // Mostra modal per inserimento immagine
+   function showImageModal() {
+     if (imageInsertModal && imageInsertOverlay) {
+       imageInsertModal.style.display = 'block';
+       imageInsertOverlay.classList.add('open');
+       modalImageUrl.value = '';
+       modalImageAlt.value = '';
+       modalImageFile.value = '';
+     }
+   }
+   
+   // Nascondi modal
+   function hideImageModal() {
+     if (imageInsertModal && imageInsertOverlay) {
+       imageInsertModal.style.display = 'none';
+       imageInsertOverlay.classList.remove('open');
+     }
+   }
+   
+   // Event listeners per il modal
+   if (insertImageBtn) {
+     insertImageBtn.addEventListener('click', showImageModal);
+   }
+   
+   if (modalCancelBtn) {
+     modalCancelBtn.addEventListener('click', hideImageModal);
+   }
+   
+   if (imageInsertOverlay) {
+     imageInsertOverlay.addEventListener('click', hideImageModal);
+   }
+   
+   // Inserisci immagine da URL
+   if (modalInsertUrlBtn) {
+     modalInsertUrlBtn.addEventListener('click', () => {
+       const url = modalImageUrl.value.trim();
+       const alt = modalImageAlt.value.trim() || 'Immagine';
+       
+       if (url) {
+         const markdown = `![${alt}](${url})`;
+         insertAtCursor(markdown);
+         hideImageModal();
+       } else {
+         alert('Inserisci un URL valido per l\'immagine');
+       }
+     });
+   }
+   
+   // Upload e inserisci immagine
+   if (modalUploadBtn && modalImageFile) {
+     modalUploadBtn.addEventListener('click', async () => {
+       const file = modalImageFile.files[0];
+       if (!file) {
+         alert('Seleziona un file immagine');
+         return;
+       }
+       
+       try {
+         modalUploadBtn.textContent = '⏳ Caricamento...';
+         modalUploadBtn.disabled = true;
+         
+         // Prova prima Firebase Storage se configurato
+         if (window.uploadToFirebase) {
+           const url = await window.uploadToFirebase(file, 'content-images/');
+           const alt = modalImageAlt.value.trim() || file.name.split('.')[0];
+           const markdown = `![${alt}](${url})`;
+           insertAtCursor(markdown);
+         } else {
+           // Fallback: converti in data URL per test locali
+           const reader = new FileReader();
+           reader.onload = (e) => {
+             const alt = modalImageAlt.value.trim() || file.name.split('.')[0];
+             const markdown = `![${alt}](${e.target.result})`;
+             insertAtCursor(markdown);
+           };
+           reader.readAsDataURL(file);
+         }
+         
+         hideImageModal();
+       } catch (error) {
+         console.error('Errore upload:', error);
+         alert('Errore durante il caricamento dell\'immagine');
+       } finally {
+         modalUploadBtn.textContent = '📤 Carica e Inserisci';
+         modalUploadBtn.disabled = false;
+       }
+     });
+   }
+   
+   // YouTube insertion
+   if (insertYouTubeBtn) {
+     insertYouTubeBtn.addEventListener('click', () => {
+       const url = prompt('Inserisci URL YouTube:', 'https://www.youtube.com/watch?v=');
+       if (url) {
+         let videoId = '';
+         
+         // Estrai ID video da vari formati URL YouTube
+         const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+         if (match) {
+           videoId = match[1];
+         } else if (url.length === 11) {
+           videoId = url; // Assume sia già un ID
+         }
+         
+         if (videoId) {
+           const embedHtml = `<div class="video-container"><iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe></div>`;
+           insertAtCursor(embedHtml);
+         } else {
+           alert('URL YouTube non valido');
+         }
+       }
+     });
+   }
+   
+   window.updateLivePreview = updateLivePreview;
+   updateLivePreview();
 
   // Copy Cover URL
   document.getElementById('coverCopyUrl')?.addEventListener('click', async () => {
@@ -502,22 +742,101 @@ function bindAdminUI() {
     else { info.textContent = 'Wrong password.'; }
   });
 
-  // Existing publish handler remains unchanged below
+  // Load existing post for editing with metadata preservation
+  function loadExistingPost(postId) {
+    try {
+      // Prova a caricare da localStorage per test locali
+      const savedPosts = JSON.parse(localStorage.getItem('blog_posts') || '{}');
+      const post = savedPosts[postId];
+      
+      if (post) {
+        // Preserva tutti i metadati esistenti
+        document.getElementById('postTitle').value = post.title || '';
+        document.getElementById('postSlug').value = post.slug || '';
+        document.getElementById('postCategory').value = post.category || '';
+        document.getElementById('postExcerpt').value = post.excerpt || '';
+        document.getElementById('postContent').value = post.content || '';
+        document.getElementById('postCover').value = post.coverUrl || '';
+        
+        // Aggiorna preview
+        updateLivePreview();
+        refreshCard();
+        
+        // Mostra anteprima cover se presente
+        if (post.coverUrl) {
+          const coverPreview = document.getElementById('coverPreview');
+          if (coverPreview) {
+            coverPreview.src = post.coverUrl;
+            coverPreview.style.display = 'block';
+          }
+        }
+        
+        // Preserva metadati aggiuntivi (data creazione, autore, etc.)
+        if (post.metadata) {
+          window.currentPostMetadata = { ...post.metadata };
+        }
+        
+        console.log('Post caricato con metadati preservati:', postId);
+        return post;
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento del post:', error);
+    }
+    
+    console.log('Post non trovato:', postId);
+    return null;
+  }
+  
+  // Save post with metadata preservation
+  function savePostWithMetadata() {
+    const postData = {
+      title: document.getElementById('postTitle').value,
+      slug: document.getElementById('postSlug').value,
+      category: document.getElementById('postCategory').value,
+      excerpt: document.getElementById('postExcerpt').value,
+      content: document.getElementById('postContent').value,
+      coverUrl: document.getElementById('postCover').value,
+      
+      // Preserva metadati esistenti e aggiunge nuovi
+      metadata: {
+        ...(window.currentPostMetadata || {}),
+        lastModified: new Date().toISOString(),
+        wordCount: document.getElementById('postContent').value.split(/\s+/).length,
+        hasImages: /!\[.*?\]\(.*?\)/.test(document.getElementById('postContent').value),
+        hasVideos: /<iframe.*youtube.*<\/iframe>/.test(document.getElementById('postContent').value)
+      }
+    };
+    
+    // Se è un nuovo post, aggiungi metadati di creazione
+    if (!window.currentPostMetadata) {
+      postData.metadata.createdAt = new Date().toISOString();
+      postData.metadata.author = localStorage.getItem('username') || 'Anonymous';
+      postData.metadata.version = 1;
+    } else {
+      postData.metadata.version = (window.currentPostMetadata.version || 1) + 1;
+    }
+    
+    return postData;
+  }
+
+  // Existing publish handler with metadata preservation
   document.getElementById('publishPost')?.addEventListener('click', async () => {
     if (!db) { info.textContent = 'Firebase not initialized'; return; }
-    const slug = document.getElementById('postSlug').value.trim();
-    const title = document.getElementById('postTitle').value.trim();
-    const category = document.getElementById('postCategory').value;
-    const cover = document.getElementById('postCover').value.trim();
-    const excerpt = document.getElementById('postExcerpt').value.trim();
-    const content = document.getElementById('postContent').value.trim();
+    const postData = savePostWithMetadata();
+    const { slug, title, category, coverUrl, excerpt, content, metadata } = postData;
     const featured = document.getElementById('postFeatured').checked;
     const readTime = document.getElementById('postReadTime').value.trim() || '5 min';
 
     if (!slug || !title) { info.textContent = 'Slug and title are required'; return; }
     const postDoc = db.collection('posts').doc(slug);
-    await postDoc.set({ slug, title, category, cover, excerpt, featured, readTime, date: new Date().toISOString().slice(0,10), contentHtml: content }, { merge: true });
-    info.textContent = 'Published! Refresh the home to see the new post.';
+    await postDoc.set({ 
+      slug, title, category, 
+      cover: coverUrl, excerpt, featured, readTime, 
+      date: metadata.createdAt ? metadata.createdAt.slice(0,10) : new Date().toISOString().slice(0,10), 
+      contentHtml: content,
+      metadata: metadata
+    }, { merge: true });
+    info.textContent = 'Published with metadata preserved! Refresh the home to see the new post.';
   });
 
   document.getElementById('seedFromLocal')?.addEventListener('click', async () => {

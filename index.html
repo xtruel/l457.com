@@ -138,7 +138,15 @@
         </div>
         <div class="form-row">
           <label>Content (HTML o Markdown semplice)</label>
-          <textarea id="postContent" rows="10"></textarea>
+          <div class="editor-toolbar">
+            <button type="button" id="insertImageBtn" class="btn-secondary" title="Inserisci immagine nella posizione del cursore">📷 Aggiungi immagine qua</button>
+            <button type="button" id="insertYouTubeBtn" class="btn-secondary" title="Inserisci video YouTube nella posizione del cursore">🎥 Aggiungi video qua</button>
+            <button type="button" id="previewToggle" class="btn-secondary" title="Mostra/nascondi anteprima in tempo reale">👁️ Preview</button>
+          </div>
+          <div class="editor-container">
+            <textarea id="postContent" rows="15" placeholder="Scrivi il contenuto del tuo articolo qui..."></textarea>
+            <div id="editorPreview" class="editor-preview" style="display:none;"></div>
+          </div>
         </div>
         <div class="form-row">
           <label>Anteprima contenuto</label>
@@ -209,5 +217,30 @@
       <div class="form-error" id="usernameError" style="display:none;"></div>
     </div>
   </div>
+
+  <!-- Image Insert Modal -->
+  <div class="image-insert-overlay" id="imageInsertOverlay"></div>
+  <div class="image-insert-modal" id="imageInsertModal" style="display:none;">
+    <h3>Inserisci Immagine</h3>
+    <div class="form-row">
+      <label>Carica da file:</label>
+      <div class="dropzone" style="margin-bottom: 12px;">
+        <input type="file" id="modalImageFile" accept="image/*" />
+        <span class="dz-hint">Trascina qui un'immagine o clicca per selezionare</span>
+      </div>
+      <button id="modalUploadBtn" class="btn-primary">📤 Carica e Inserisci</button>
+    </div>
+    <div class="form-row">
+      <label>Oppure inserisci URL:</label>
+      <input type="url" id="modalImageUrl" placeholder="https://esempio.com/immagine.jpg" />
+      <input type="text" id="modalImageAlt" placeholder="Testo alternativo (opzionale)" style="margin-top: 8px;" />
+    </div>
+    <div class="form-row inline" style="margin-top: 16px;">
+      <button id="modalInsertUrlBtn" class="btn-primary">✅ Inserisci URL</button>
+      <button id="modalCancelBtn" class="btn-secondary">❌ Annulla</button>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
