@@ -6,20 +6,27 @@ const host = '127.0.0.1';
 const port = 5500;
 const baseDir = __dirname;
 
-const mime = {
-  '.html': 'text/html; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.js': 'application/javascript; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-  '.ico': 'image/x-icon',
-  '.txt': 'text/plain; charset=utf-8'
-};
+// Lightweight .env loader for local development (no external deps)
+try {
+  if (!process.env.ADMIN_PASSWORD) {
+    const envPath = path.join(baseDir, '.env');
+    if (fs.existsSync(envPath)) {
+      const lines = fs.readFileSync(envPath, 'utf-8').split(/\r?\n/);
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq > -1) {
+          const key = trimmed.slice(0, eq).trim();
+          const val = trimmed.slice(eq + 1).trim();
+          if (!(key in process.env)) process.env[key] = val;
+        }
+      }
+    }
+  }
+} catch (_) {
+  // fail silently
+}
 
 function safeJoin(base, target) {
   const targetPath = path.posix.normalize(target.replace(/\\/g, '/'));
@@ -126,3 +133,18 @@ const server = http.createServer((req, res) => {
 server.listen(port, host, () => {
   console.log(`Server running at http://${host}:${port}/`);
 });
+
+const mime = {
+  '.html': 'text/html; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.ico': 'image/x-icon',
+  '.txt': 'text/plain; charset=utf-8'
+};

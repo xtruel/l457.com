@@ -1547,13 +1547,33 @@ function bindAdminUI() {
       };
 
       try {
+        // Ask for admin password (once per session)
+        let adminPassword = sessionStorage.getItem('ADMIN_PASSWORD');
+        if (!adminPassword) {
+          adminPassword = window.prompt('Enter admin password to publish:');
+          if (!adminPassword) {
+            info.textContent = '❌ Publishing canceled: password is required';
+            info.style.color = '#ef4444';
+            publishBtn.disabled = false;
+            publishBtn.textContent = originalText;
+            publishBtn.style.opacity = '';
+            return;
+          }
+          sessionStorage.setItem('ADMIN_PASSWORD', adminPassword);
+        }
+        const basicToken = btoa(`admin:${adminPassword}`);
         const response = await fetch('/api/publish', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Basic ${basicToken}` },
           body: JSON.stringify(postObject),
         });
 
-        const result = await response.json();
+        const result = await response.json().catch(() => ({ success: false, message: 'Invalid server response' }));
+
+        if (response.status === 401 || response.status === 403) {
+          sessionStorage.removeItem('ADMIN_PASSWORD');
+          throw new Error(result.message || 'Unauthorized: invalid admin password');
+        }
 
         if (response.ok && result.success) {
           publishBtn.textContent = '✓ Published!';
