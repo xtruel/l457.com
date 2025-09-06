@@ -3,6 +3,152 @@ window.LOCAL_ADMIN = {
   password: 'admin123'
 };
 
+// Firebase Configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCWlYJp3xZDnNtU7CoBngWZZdg27aOlIdE",
+  authDomain: "l457-4444.firebaseapp.com",
+  projectId: "l457-4444",
+  storageBucket: "l457-4444.firebasestorage.app",
+  messagingSenderId: "548269746173",
+  appId: "1:548269746173:web:a8fec18e83641978d45b94",
+  measurementId: "G-9CZLXBNP6K"
+}
+
+// Initialize Firebase
+let app, auth, db, storage, analytics;
+try {
+  app = firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  storage = firebase.storage();
+  analytics = firebase.analytics();
+  console.log('Firebase initialized successfully');
+} catch (error) {
+  console.error('Firebase initialization failed:', error);
+}
+
+// Firebase Storage upload function
+async function uploadToFirebaseStorage(file, path = 'images/') {
+  try {
+    const timestamp = Date.now();
+    const fileName = `${timestamp}_${file.name}`;
+    const storageRef = storage.ref().child(path + fileName);
+    
+    // Upload file
+    const snapshot = await storageRef.put(file);
+    
+    // Get download URL
+    const downloadURL = await snapshot.ref.getDownloadURL();
+    
+    console.log('File uploaded successfully:', downloadURL);
+    return downloadURL;
+  } catch (error) {
+    console.error('Upload failed:', error);
+    throw error;
+  }
+}
+
+// Firestore database functions
+async function savePostToFirestore(post) {
+  try {
+    const docRef = await db.collection('posts').doc(post.slug).set({
+      ...post,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    console.log('Post saved to Firestore:', post.slug);
+    return true;
+  } catch (error) {
+    console.error('Error saving post to Firestore:', error);
+    throw error;
+  }
+}
+
+async function getPostsFromFirestore() {
+  try {
+    const snapshot = await db.collection('posts').orderBy('createdAt', 'desc').get();
+    const posts = [];
+    snapshot.forEach(doc => {
+      posts.push({ id: doc.id, ...doc.data() });
+    });
+    return posts;
+  } catch (error) {
+    console.error('Error getting posts from Firestore:', error);
+    return [];
+  }
+}
+
+async function saveCommentToFirestore(postSlug, comment) {
+  try {
+    await db.collection('posts').doc(postSlug).collection('comments').add({
+      ...comment,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    console.log('Comment saved to Firestore');
+    return true;
+  } catch (error) {
+    console.error('Error saving comment to Firestore:', error);
+    throw error;
+  }
+}
+
+// Quill Rich Text Editor
+let quillEditor;
+function initializeRichTextEditor() {
+  const contentTextarea = document.getElementById('postContent');
+  if (!contentTextarea || typeof Quill === 'undefined') return;
+  
+  // Check if editor already exists
+  if (quillEditor) return;
+  
+  // Create editor container
+  const editorContainer = document.createElement('div');
+  editorContainer.id = 'quill-editor';
+  editorContainer.style.cssText = `
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--glass);
+    margin-bottom: 10px;
+  `;
+  
+  // Insert editor before textarea
+  contentTextarea.parentNode.insertBefore(editorContainer, contentTextarea);
+  contentTextarea.style.display = 'none';
+  
+  // Initialize Quill editor
+  try {
+    quillEditor = new Quill(editorContainer, {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          [{ 'header': [1, 2, 3, false] }],
+          ['bold', 'italic', 'underline'],
+          [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+          ['blockquote', 'code-block'],
+          ['link', 'image'],
+          ['clean']
+        ]
+      },
+      placeholder: 'Write your post content here...'
+    });
+    
+    // Set initial content
+    if (contentTextarea.value) {
+      quillEditor.root.innerHTML = contentTextarea.value;
+    }
+    
+    // Sync content with textarea
+    quillEditor.on('text-change', () => {
+      contentTextarea.value = quillEditor.root.innerHTML;
+    });
+    
+    console.log('Quill editor initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize Quill editor:', error);
+    contentTextarea.style.display = 'block';
+  }
+}
+
 // Data: posts
 const posts = [
   {
@@ -330,81 +476,28 @@ function init() {
   handleHashChange();
 }
 
-// Firebase setup
-let fbApp, fbAuth, db, storage;
-let firebaseInitialized = false;
-let firebaseError = null;
+// Local storage only - no Firebase
+let localStorageInitialized = false;
 
-function initFirebase() {
-  if (!window.FIREBASE_CONFIG) {
-    console.warn('Firebase config not found. Running in local-only mode.');
-    firebaseError = 'Firebase configuration not found';
-    return;
-  }
-  
-  // Validate Firebase configuration
-  const requiredFields = ['apiKey', 'authDomain', 'projectId'];
-  const missingFields = requiredFields.filter(field => 
-    !window.FIREBASE_CONFIG[field] || 
-    window.FIREBASE_CONFIG[field].includes('YOUR_') || 
-    window.FIREBASE_CONFIG[field] === 'YOUR_PROJECT_ID'
-  );
-  
-  if (missingFields.length > 0) {
-    console.warn('Firebase config incomplete. Missing or placeholder values for:', missingFields);
-    firebaseError = `Firebase configuration incomplete: ${missingFields.join(', ')}`;
-    return;
-  }
-  
+function initLocalStorage() {
   try {
-    fbApp = firebase.initializeApp(window.FIREBASE_CONFIG);
-    fbAuth = firebase.auth();
-    db = firebase.firestore();
-    
-    // Test connection with timeout
-    const connectionTest = db.collection('_test').limit(1).get();
-    const timeout = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Connection timeout')), 5000)
-    );
-    
-    Promise.race([connectionTest, timeout])
-      .then(() => {
-        firebaseInitialized = true;
-        console.log('Firebase connected successfully');
-      })
-      .catch((error) => {
-        console.warn('Firebase connection test failed:', error.message);
-        firebaseError = `Firebase connection failed: ${error.message}`;
-      });
-    
-    try { 
-      if (firebase.storage) storage = firebase.storage(); 
-    } catch(_) { 
-      storage = null; 
-    }
-    
+    // Test localStorage availability
+    localStorage.setItem('test', 'test');
+    localStorage.removeItem('test');
+    localStorageInitialized = true;
+    console.log('Local storage initialized successfully');
   } catch (error) {
-    console.error('Firebase initialization failed:', error);
-    firebaseError = `Firebase initialization failed: ${error.message}`;
-    fbApp = null;
-    fbAuth = null;
-    db = null;
-    storage = null;
+    console.error('Local storage not available:', error);
+    localStorageInitialized = false;
   }
 }
 
-// Check Firebase status
-function getFirebaseStatus() {
-  if (!window.FIREBASE_CONFIG) {
-    return { connected: false, error: 'No Firebase configuration found', mode: 'local-only' };
+// Check local storage status
+function getStorageStatus() {
+  if (localStorageInitialized) {
+    return { connected: true, error: null, mode: 'local-only' };
   }
-  if (firebaseError) {
-    return { connected: false, error: firebaseError, mode: 'local-only' };
-  }
-  if (firebaseInitialized && db) {
-    return { connected: true, error: null, mode: 'firebase' };
-  }
-  return { connected: false, error: 'Firebase initializing...', mode: 'local-only' };
+  return { connected: false, error: 'Local storage not available', mode: 'local-only' };
 }
 
 // Username management (unique, no password)
@@ -431,11 +524,7 @@ async function ensureUsername() {
       if (!name || name.length < 3) { error.textContent = 'At least 3 characters'; error.style.display='block'; return; }
       // check Firestore uniqueness
       try {
-        const docRef = db.collection('usernames').doc(name);
-        const doc = await docRef.get();
-        if (doc.exists) { error.textContent = 'Username already taken'; error.style.display='block'; return; }
-        // reserve
-        await docRef.set({ createdAt: Date.now() });
+        // Simple local username storage (no server validation)
         myUsername = name;
         localStorage.setItem(LS_USERNAME, name);
         document.getElementById('usernameOverlay')?.classList.remove('open');
@@ -457,36 +546,7 @@ async function ensureUsername() {
   });
 }
 
-// Comments logic
-function listenComments(slug) {
-  if (!db) return; // skip if firebase missing
-  return db.collection('posts').doc(slug).collection('comments')
-    .orderBy('createdAt', 'asc')
-    .onSnapshot((snap) => {
-      const wrap = document.getElementById('commentsList');
-      if (!wrap) return;
-      wrap.innerHTML = snap.docs.map(d => {
-        const c = d.data();
-        return `<div class="comment-item"><div class="comment-head">@${c.username} · ${new Date(c.createdAt).toLocaleString()}</div><div class="comment-body">${escapeHtml(c.text)}</div></div>`;
-      }).join('');
-    });
-}
-
-function escapeHtml(s='') { return s.replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[ch])); }
-
-async function submitComment(slug) {
-  if (!db) return;
-  const text = (document.getElementById('commentText')?.value || '').trim();
-  if (!text) return;
-  const name = await ensureUsername();
-  if (!name) return;
-  await db.collection('posts').doc(slug).collection('comments').add({
-    text,
-    username: name,
-    createdAt: Date.now()
-  });
-  const ta = document.getElementById('commentText'); if (ta) ta.value = '';
-}
+// Comments will be handled by Giscus - no local storage needed
 
 // Admin auth + upload
 let adminUnsub = null;
@@ -502,7 +562,11 @@ function bindAdminUI() {
 
   if (!overlay) return; // allow binding without a visible Admin button
 
-  if (btn) btn.addEventListener('click', () => overlay.classList.add('open'));
+  if (btn) btn.addEventListener('click', () => {
+    overlay.classList.add('open');
+    // Initialize rich text editor when admin panel opens
+    setTimeout(() => initializeRichTextEditor(), 100);
+  });
   closeBtn?.addEventListener('click', () => overlay.classList.remove('open'));
 
   // Live preview bindings
@@ -1085,16 +1149,17 @@ function bindAdminUI() {
          const urls = [];
          const alt = modalImageAlt.value.trim();
          
-         // Carica tutti i file
+         // Upload all files to Firebase Storage
          for (let i = 0; i < selectedFiles.length; i++) {
            const file = selectedFiles[i];
            
-           if (window.uploadToFirebase) {
-             // Upload su Firebase Storage
-             const url = await window.uploadToFirebase(file, 'content-images/');
-             urls.push(url);
-           } else {
-             // Fallback: converti in data URL per test locali
+           try {
+             // Upload to Firebase Storage
+             const firebaseUrl = await uploadToFirebaseStorage(file, 'blog-images/');
+             urls.push(firebaseUrl);
+           } catch (error) {
+             console.error('Firebase upload failed, falling back to local storage:', error);
+             // Fallback to local data URL
              const dataUrl = await new Promise((resolve) => {
                const reader = new FileReader();
                reader.onload = (e) => resolve(e.target.result);
@@ -1239,18 +1304,10 @@ function bindAdminUI() {
     const ta = document.getElementById('postContent');
     const urls = [];
     for (const f of files) {
-      if (storage) {
-        try {
-          const ref = storage.ref().child(`content/${Date.now()}_${f.name}`);
-          await ref.put(f);
-          const url = await ref.getDownloadURL();
-          urls.push(url);
-        } catch (e) { info.textContent = 'Upload immagine fallito per ' + f.name; }
-      } else {
-        const reader = new FileReader();
-        const url = await new Promise(res => { reader.onload = () => res(reader.result); reader.readAsDataURL(f); });
-        urls.push(url);
-      }
+      // Convert to data URL for local storage
+      const reader = new FileReader();
+      const url = await new Promise(res => { reader.onload = () => res(reader.result); reader.readAsDataURL(f); });
+      urls.push(url);
     }
     // Insert into content usando placeholder
     for (const u of urls) {
@@ -1275,26 +1332,42 @@ function bindAdminUI() {
     }
   });
 
-  // Auth logic
+  // Google OAuth authentication
   authBtn?.addEventListener('click', async () => {
     try {
       const provider = new firebase.auth.GoogleAuthProvider();
-      const cred = await fbAuth.signInWithPopup(provider);
-      const email = cred.user?.email || '';
-      if (!window.ALLOWED_ADMIN_EMAILS?.includes(email)) {
-        info.textContent = 'Unauthorized email.';
-        await fbAuth.signOut();
-        return;
+      const result = await auth.signInWithPopup(provider);
+      const user = result.user;
+      
+      // Check if user is authorized admin
+      const adminEmail = 'truel3000lofi@gmail.com';
+      if (user.email === adminEmail) {
+        info.textContent = `Hello ${user.displayName || user.email}. You can publish.`;
+        form.style.display = '';
+        
+        // Update button to show sign out option
+        authBtn.textContent = 'Sign Out';
+        authBtn.onclick = () => {
+          auth.signOut().then(() => {
+            info.textContent = 'Signed out successfully.';
+            form.style.display = 'none';
+            authBtn.textContent = 'Sign in';
+            authBtn.onclick = null;
+            location.reload();
+          });
+        };
+      } else {
+        info.textContent = 'Unauthorized email. Access denied.';
+        auth.signOut();
       }
-      info.textContent = `Hello ${email}. You can publish.`;
-      form.style.display = '';
-    } catch (e) {
-      info.textContent = 'Sign-in canceled or failed.';
+    } catch (error) {
+      console.error('Authentication error:', error);
+      info.textContent = 'Authentication failed: ' + error.message;
     }
   });
 
-  // Local password unlock (enabled for development domains)
-  const isDevelopment = ['localhost','127.0.0.1'].includes(location.hostname);
+  // Local password unlock (enabled for development domains and l457.com)
+  const isDevelopment = ['localhost','127.0.0.1','l457.com'].includes(location.hostname);
   const expected = isDevelopment ? (window.LOCAL_ADMIN?.password) : null;
   // Show local unlock controls on development domains
   const pwdEl = document.getElementById('adminPwd');
@@ -1585,10 +1658,32 @@ function bindAdminUI() {
         }
 
         if (response.ok && result.success) {
-          publishBtn.textContent = '✓ Published!';
-          publishBtn.style.background = 'linear-gradient(90deg, #10b981, #059669)';
-          info.innerHTML = `<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin: 8px 0;"><strong>✅ Success!</strong><br>Your post has been published locally.</div>`;
-          info.style.color = '#10b981';
+          // Also save to Firestore
+          try {
+            const firestorePost = {
+              slug,
+              title,
+              content,
+              category,
+              cover: coverUrl,
+              excerpt,
+              featured,
+              readTime,
+              date: new Date().toISOString().split('T')[0]
+            };
+            await savePostToFirestore(firestorePost);
+            
+            publishBtn.textContent = '✓ Published!';
+            publishBtn.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+            info.innerHTML = `<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin: 8px 0;"><strong>✅ Success!</strong><br>Your post has been published locally and saved to Firebase.</div>`;
+            info.style.color = '#10b981';
+          } catch (firestoreError) {
+            console.error('Firestore save failed:', firestoreError);
+            publishBtn.textContent = '✓ Published!';
+            publishBtn.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+            info.innerHTML = `<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin: 8px 0;"><strong>✅ Success!</strong><br>Your post has been published locally. (Firebase save failed - check console)</div>`;
+            info.style.color = '#10b981';
+          }
 
           ['postTitle', 'postContent', 'postExcerpt', 'postCover'].forEach(fieldId => {
             const field = document.getElementById(fieldId);
@@ -1641,26 +1736,12 @@ function bindAdminUI() {
   const seedBtn = document.getElementById('seedFromLocal');
   if (seedBtn) {
     seedBtn.addEventListener('click', async () => {
-      if (!db) { info.textContent = 'Firebase not initialized'; return; }
       try {
-        info.textContent = 'Seeding in progress...';
-        for (const p of posts) {
-          const docRef = db.collection('posts').doc(p.slug);
-          await docRef.set({
-            slug: p.slug,
-            title: p.title,
-            category: p.category,
-            date: p.date || new Date().toISOString().slice(0,10),
-            readTime: p.readTime || '5 min',
-            excerpt: p.excerpt || '',
-            cover: p.cover || '',
-            featured: !!p.featured,
-            contentHtml: typeof p.content === 'string' ? p.content : ''
-          }, { merge: true });
-        }
-        info.textContent = 'Seeding complete. Refresh the home to load Firestore data.';
+        info.textContent = 'Saving posts to local storage...';
+        savePostsToLocalStorage(posts);
+        info.textContent = 'Posts saved to local storage successfully.';
       } catch (e) {
-        info.textContent = 'Error during seeding.';
+        info.textContent = 'Error saving posts to local storage.';
       }
     });
   }
@@ -1697,13 +1778,13 @@ function bindAdminUI() {
   }
 }
 
-// Load posts from Firestore (if available)
-async function fetchPostsFromFirestore() {
-  if (!db) return null;
-  const snap = await db.collection('posts').orderBy('date', 'desc').get();
-  return snap.docs.map(d => {
-    const p = d.data();
-    return {
+// Load posts from local storage only
+function fetchPostsFromLocalStorage() {
+  try {
+    const stored = localStorage.getItem('blog_posts');
+    if (!stored) return [];
+    const posts = JSON.parse(stored);
+    return posts.map(p => ({
       slug: p.slug,
       title: p.title,
       category: p.category,
@@ -1712,50 +1793,30 @@ async function fetchPostsFromFirestore() {
       excerpt: p.excerpt || '',
       cover: p.cover || '',
       featured: !!p.featured,
-      content: p.contentHtml || '<div class="article"><p>(Senza contenuto)</p></div>'
-    };
-  });
+      content: p.content || '<div class="article"><p>(No content)</p></div>'
+    }));
+  } catch (error) {
+    console.error('Error loading posts from local storage:', error);
+    return [];
+  }
 }
 
-// Override render source if Firestore has content
-async function initDynamicContent() {
-  initFirebase();
+// Load content from local storage only
+function initDynamicContent() {
+  initLocalStorage();
   try {
-    // Load posts from localStorage first
-    const localPosts = loadPostsFromLocalStorage();
+    // Load posts from localStorage
+    const storedPosts = fetchPostsFromLocalStorage();
     
-    // Try to fetch from Firebase
-    const remote = await fetchPostsFromFirestore();
-    
-    // Combine local and remote posts, avoiding duplicates
-    const allPosts = [];
-    const slugSet = new Set();
-    
-    // Add Firebase posts first (they have priority)
-    if (remote && remote.length) {
-      remote.forEach(post => {
-        if (!slugSet.has(post.slug)) {
-          allPosts.push(post);
-          slugSet.add(post.slug);
-        }
-      });
-    }
-    
-    // Add local posts that aren't already in Firebase
-    localPosts.forEach(post => {
-      if (!slugSet.has(post.slug)) {
-        allPosts.push(post);
-        slugSet.add(post.slug);
-      }
-    });
-    
-    // Update posts array if we have any content
-    if (allPosts.length > 0) {
-      posts.splice(0, posts.length, ...allPosts);
+    // Update posts array if we have stored content
+    if (storedPosts.length > 0) {
+      posts.splice(0, posts.length, ...storedPosts);
       renderFeatured();
       renderPosts();
     }
-  } catch {}
+  } catch (error) {
+    console.error('Error loading dynamic content:', error);
+  }
 }
 
 function loadPostsFromLocalStorage() {
@@ -1767,16 +1828,7 @@ function loadPostsFromLocalStorage() {
   }
 }
 
-// Hook comments when opening article
-let commentsUnsub = null;
-const origOpenArticle = openArticle;
-openArticle = function(slug) {
-  origOpenArticle(slug);
-  // bind submit
-  document.getElementById('commentSubmit')?.addEventListener('click', () => submitComment(slug));
-  if (commentsUnsub) { try { commentsUnsub(); } catch {} }
-  commentsUnsub = listenComments(slug);
-};
+// Comments handled by Giscus - no local binding needed
 
 // 📁 LOCAL UPLOAD SOLUTION - Download posts without Firebase!
 function downloadPostAsHTML(slug) {
@@ -1920,7 +1972,7 @@ function addDownloadButtons() {
  const origInit = init;
  init = function() {
    origInit();
-   // Load local posts first (if available), then try Firestore override
+   // Load local posts first, then dynamic content
    initLocalContent().then(() => {
      initDynamicContent();
    });

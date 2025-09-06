@@ -12,6 +12,8 @@
     "setup:firebase": "node scripts/setup-firebase.js"
   },
   "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
+    "firebase": "^10.7.1",
     "serve": "^14.2.1"
   },
   "engines": {
