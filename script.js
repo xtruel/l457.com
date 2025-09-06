@@ -175,12 +175,20 @@ function closeArticle() {
 }
 
 function handleHashChange() {
+  console.log('Hash changed to:', location.hash);
   const match = location.hash.match(/^#\/post\/(.+)$/);
   if (match) {
     openArticle(match[1]);
   } else if (location.hash.startsWith('#/admin')) {
     // open Admin overlay via secret hash link
-    document.getElementById('adminOverlay')?.classList.add('open');
+    console.log('Opening admin overlay');
+    const adminOverlay = document.getElementById('adminOverlay');
+    if (adminOverlay) {
+      adminOverlay.classList.add('open');
+      console.log('Admin overlay opened');
+    } else {
+      console.error('Admin overlay element not found');
+    }
   } else {
     document.getElementById('articleOverlay')?.classList.remove('open');
     // also close admin overlay when leaving
