@@ -325,6 +325,7 @@ function init() {
   bindSliderDrag();
   bindSearch();
   bindOpeners();
+  bindAdminUI();
   window.addEventListener('hashchange', handleHashChange);
   handleHashChange();
 }
@@ -1293,7 +1294,7 @@ function bindAdminUI() {
   });
 
   // Local password unlock (enabled for development domains)
-  const isDevelopment = ['localhost','127.0.0.1','l457.com'].includes(location.hostname);
+  const isDevelopment = ['localhost','127.0.0.1'].includes(location.hostname);
   const expected = isDevelopment ? (window.LOCAL_ADMIN?.password) : null;
   // Show local unlock controls on development domains
   const pwdEl = document.getElementById('adminPwd');
