@@ -21,14 +21,11 @@ window.ALLOWED_ADMIN_EMAILS = [
   "you@example.com" // ← Replace with your Gmail address
 ];
 
-// STEP 5: REMOVE this section for security (it's only for localhost)
-// Comment it out like this:
-/*
+// STEP 5: LOCAL ADMIN for development (enabled)
 window.LOCAL_ADMIN = {
   username: "truel",
   password: "12345////"
 };
-*/
 
 // 🎯 WHY YOUR PUBLISH BUTTON DOESN'T WORK:
 // The script detects "YOUR_API_KEY" and other fake values
