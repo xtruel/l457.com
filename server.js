@@ -27,6 +27,57 @@ function safeJoin(base, target) {
 }
 
 const server = http.createServer((req, res) => {
+  // Handle API requests
+  if (req.url === '/api/publish' && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+    req.on('end', () => {
+      try {
+        const post = JSON.parse(body);
+        const slug = post.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const postFilePath = safeJoin(baseDir, `posts/${slug}.html`);
+        const indexFilePath = safeJoin(baseDir, 'posts/index.json');
+
+        // Create post HTML file
+        const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>${post.title}</title>
+</head>
+<body>
+  ${post.content}
+</body>
+</html>`;
+        fs.writeFileSync(postFilePath, htmlContent);
+
+        // Update index.json
+        const index = JSON.parse(fs.readFileSync(indexFilePath, 'utf-8'));
+        index.unshift({
+          slug: slug,
+          title: post.title,
+          category: post.category,
+          date: new Date().toISOString().split('T')[0],
+          readTime: post.readTime,
+          excerpt: post.excerpt,
+          cover: post.cover,
+          featured: post.featured
+        });
+        fs.writeFileSync(indexFilePath, JSON.stringify(index, null, 2));
+
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: true, message: 'Post published successfully!' }));
+      } catch (error) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ success: false, message: error.message }));
+      }
+    });
+    return;
+  }
+
+
   let urlPath = req.url.split('?')[0];
   if (urlPath === '/' || urlPath === '' || urlPath.startsWith('/#')) {
     urlPath = '/index.html';

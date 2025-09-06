@@ -1537,121 +1537,56 @@ function bindAdminUI() {
       info.style.color = '#3b82f6';
       
       const postObject = {
-        slug, title, category, 
-        cover: coverUrl, excerpt, featured, readTime, 
-        date: metadata.createdAt ? metadata.createdAt.slice(0,10) : new Date().toISOString().slice(0,10), 
-        contentHtml: content,
-        metadata: metadata
+        title,
+        content: content,
+        category,
+        cover: coverUrl,
+        excerpt,
+        featured,
+        readTime,
       };
-      
+
       try {
-        // Check Firebase status and provide appropriate feedback
-        const firebaseStatus = getFirebaseStatus();
-        
-        if (firebaseStatus.connected && db) {
-          try {
-            // Validate post object before sending to Firebase
-            if (!postObject.slug || !postObject.title || !postObject.contentHtml) {
-              throw new Error('Invalid post data: missing required fields');
+        const response = await fetch('/api/publish', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(postObject),
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          publishBtn.textContent = '✓ Published!';
+          publishBtn.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+          info.innerHTML = `<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin: 8px 0;"><strong>✅ Success!</strong><br>Your post has been published locally.</div>`;
+          info.style.color = '#10b981';
+
+          ['postTitle', 'postContent', 'postExcerpt', 'postCover'].forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+              field.style.borderColor = '';
+              field.style.boxShadow = '';
             }
-            
-            const postDoc = db.collection('posts').doc(slug);
-            await postDoc.set(postObject, { merge: true });
-            
-            // Update local storage as backup
-            saveToLocalStorage(slug, postObject);
-            
-            // Success feedback with enhanced notification
-            publishBtn.textContent = '✓ Published!';
-            publishBtn.style.background = 'linear-gradient(90deg, #10b981, #059669)';
-            info.innerHTML = `<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin: 8px 0;"><strong>✅ Success!</strong><br>Published to Firebase and backed up locally. Your post is now live!</div>`;
-            info.style.color = '#10b981';
-            
-            // Clear any previous error styling from form fields
-            ['postTitle', 'postContent', 'postExcerpt', 'postCover'].forEach(fieldId => {
-              const field = document.getElementById(fieldId);
-              if (field) {
-                field.style.borderColor = '';
-                field.style.boxShadow = '';
-              }
-            });
-            
-            // Reset button after 2 seconds
-            setTimeout(() => {
-              publishBtn.textContent = originalText;
-              publishBtn.style.background = '';
-              publishBtn.style.opacity = '';
-              publishBtn.disabled = false;
-            }, 2000);
-            
-          } catch (e) {
-            console.error('Firebase publishing error:', e);
-            
-            // Try to save locally as fallback
-            try {
-              saveToLocalStorage(slug, postObject);
-              
-              // Fallback success feedback
-              publishBtn.textContent = '⚠️ Published Locally';
-              publishBtn.style.background = 'linear-gradient(90deg, #f59e0b, #d97706)';
-              info.textContent = `⚠️ Firebase error: ${e.message}. Post saved locally and can be synced later.`;
-              info.style.color = '#f59e0b';
-              
-            } catch (localError) {
-              throw new Error(`Firebase failed: ${e.message}. Local storage also failed: ${localError.message}`);
-            }
-            
-            // Reset button after 3 seconds for warnings
-            setTimeout(() => {
-              publishBtn.textContent = originalText;
-              publishBtn.style.background = '';
-              publishBtn.style.opacity = '';
-              publishBtn.disabled = false;
-            }, 3000);
-          }
+          });
+
         } else {
-          // Firebase not available, use local storage
-          try {
-            saveToLocalStorage(slug, postObject);
-            
-            // Local success feedback with status explanation
-            publishBtn.textContent = '✓ Saved Locally';
-            publishBtn.style.background = 'linear-gradient(90deg, #6366f1, #4f46e5)';
-            
-            if (firebaseStatus.error) {
-              info.textContent = `📱 Published locally. Firebase issue: ${firebaseStatus.error}`;
-            } else {
-              info.textContent = '📱 Published locally! Configure Firebase for cloud sync.';
-            }
-            info.style.color = '#6366f1';
-            
-          } catch (localError) {
-            throw new Error(`Local storage failed: ${localError.message}. No backup available.`);
-          }
-          
-          // Reset button after 2 seconds
-          setTimeout(() => {
-            publishBtn.textContent = originalText;
-            publishBtn.style.background = '';
-            publishBtn.style.opacity = '';
-            publishBtn.disabled = false;
-          }, 2000);
+          throw new Error(result.message || 'Failed to publish post');
         }
+
       } catch (error) {
-        // Critical error feedback
-        console.error('Critical publishing error:', error);
+        console.error('Publishing error:', error);
         publishBtn.textContent = '❌ Failed';
         publishBtn.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
         info.textContent = `❌ Publishing failed: ${error.message}`;
         info.style.color = '#ef4444';
-        
-        // Reset button after 4 seconds for errors
+
+      } finally {
         setTimeout(() => {
           publishBtn.textContent = originalText;
           publishBtn.style.background = '';
           publishBtn.style.opacity = '';
           publishBtn.disabled = false;
-        }, 4000);
+        }, 3000);
       }
     });
   }
