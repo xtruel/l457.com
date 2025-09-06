@@ -1,10 +1,18 @@
-// Local admin configuration for production
-window.LOCAL_ADMIN = {
-  password: 'admin123'
-};
+// Local admin configuration removed - using Google OAuth only
+
+// Allowed admin emails for Google OAuth authentication
+window.ALLOWED_ADMIN_EMAILS = [
+  'truel3000lofi@gmail.com',  // Original admin email
+  // Add your email here to access the admin panel
+  // 'your-email@gmail.com'
+];
 
 // Firebase Configuration
 const firebaseConfig = {
+  // Make config globally accessible for modules
+};
+window.firebaseConfig = firebaseConfig;
+Object.assign(firebaseConfig, {
   apiKey: "AIzaSyCWlYJp3xZDnNtU7CoBngWZZdg27aOlIdE",
   authDomain: "l457-4444.firebaseapp.com",
   projectId: "l457-4444",
@@ -12,7 +20,7 @@ const firebaseConfig = {
   messagingSenderId: "548269746173",
   appId: "1:548269746173:web:a8fec18e83641978d45b94",
   measurementId: "G-9CZLXBNP6K"
-}
+});
 
 // Initialize Firebase
 let app, auth, db, storage, analytics;
@@ -22,6 +30,10 @@ try {
   db = firebase.firestore();
   storage = firebase.storage();
   analytics = firebase.analytics();
+  
+  // Make Firebase app globally available for Vertex AI
+  window.firebaseApp = app;
+  
   console.log('Firebase initialized successfully');
 } catch (error) {
   console.error('Firebase initialization failed:', error);
@@ -557,8 +569,6 @@ function bindAdminUI() {
   const authBtn = document.getElementById('adminAuthBtn');
   const info = document.getElementById('adminInfo');
   const form = document.getElementById('adminForm');
-  const pwdInput = document.getElementById('adminPwd');
-  const pwdUnlock = document.getElementById('adminPwdUnlock');
 
   if (!overlay) return; // allow binding without a visible Admin button
 
@@ -1340,8 +1350,8 @@ function bindAdminUI() {
       const user = result.user;
       
       // Check if user is authorized admin
-      const adminEmail = 'truel3000lofi@gmail.com';
-      if (user.email === adminEmail) {
+      const allowedEmails = window.ALLOWED_ADMIN_EMAILS || ['truel3000lofi@gmail.com'];
+      if (allowedEmails.includes(user.email)) {
         info.textContent = `Hello ${user.displayName || user.email}. You can publish.`;
         form.style.display = '';
         
@@ -1366,25 +1376,7 @@ function bindAdminUI() {
     }
   });
 
-  // Local password unlock (enabled for development domains and l457.com)
-  const isDevelopment = ['localhost','127.0.0.1','l457.com'].includes(location.hostname);
-  const expected = isDevelopment ? (window.LOCAL_ADMIN?.password) : null;
-  // Show local unlock controls on development domains
-  const pwdEl = document.getElementById('adminPwd');
-  const unlockEl = document.getElementById('adminPwdUnlock');
-  if (!isDevelopment) {
-    pwdEl?.setAttribute('disabled', 'true');
-    unlockEl?.setAttribute('disabled', 'true');
-    if (pwdEl) pwdEl.style.display = 'none';
-    if (unlockEl) unlockEl.style.display = 'none';
-  }
-  document.getElementById('adminPwdUnlock')?.addEventListener('click', () => {
-    if (!isDevelopment) { info.textContent = 'Local unlock is disabled on production. Please use Google Sign in.'; return; }
-    const provided = (pwdInput?.value || '').trim();
-    if (!expected) { info.textContent = 'Local password not configured.'; return; }
-    if (provided === expected) { info.textContent = 'Local admin unlocked. You can publish.'; form.style.display = ''; }
-    else { info.textContent = 'Wrong password.'; }
-  });
+  // Local password authentication removed - Google OAuth only
 
   // Load existing post for editing with metadata preservation
   function loadExistingPost(postId) {
