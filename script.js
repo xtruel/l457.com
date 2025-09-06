@@ -175,19 +175,14 @@ function closeArticle() {
 }
 
 function handleHashChange() {
-  console.log('Hash changed to:', location.hash);
   const match = location.hash.match(/^#\/post\/(.+)$/);
   if (match) {
     openArticle(match[1]);
-  } else if (location.hash.startsWith('#/admin')) {
-    // open Admin overlay via secret hash link
-    console.log('Opening admin overlay');
+  } else if (location.hash.startsWith('#/admin') || location.hash === '#admin') {
+    // open Admin overlay via secret hash link (supports both #admin and #/admin)
     const adminOverlay = document.getElementById('adminOverlay');
     if (adminOverlay) {
       adminOverlay.classList.add('open');
-      console.log('Admin overlay opened');
-    } else {
-      console.error('Admin overlay element not found');
     }
   } else {
     document.getElementById('articleOverlay')?.classList.remove('open');
@@ -332,24 +327,6 @@ function init() {
   bindOpeners();
   window.addEventListener('hashchange', handleHashChange);
   handleHashChange();
-  
-  // Debug: Add a test button to verify admin panel works
-  setTimeout(() => {
-    const testBtn = document.createElement('button');
-    testBtn.textContent = 'Test Admin';
-    testBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:9999;background:red;color:white;padding:5px;';
-    testBtn.onclick = () => {
-      console.log('Test button clicked');
-      const adminOverlay = document.getElementById('adminOverlay');
-      if (adminOverlay) {
-        adminOverlay.classList.add('open');
-        console.log('Admin overlay opened via test button');
-      } else {
-        console.error('Admin overlay not found via test button');
-      }
-    };
-    document.body.appendChild(testBtn);
-  }, 1000);
 }
 
 // Firebase setup
