@@ -1,0 +1,82 @@
+name: Deploy to Netlify
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Validate deployment configuration
+      run: npm run validate
+      
+    - name: Check for Firebase configuration
+      run: |
+        if [ ! -f "firebase-config.js" ]; then
+          echo "⚠️ firebase-config.js not found. Using template."
+          cp firebase-config.production.js firebase-config.js
+        fi
+        
+    - name: Validate HTML
+      run: |
+        # Basic HTML validation
+        if command -v htmlhint &> /dev/null; then
+          htmlhint index.html posts/*.html
+        else
+          echo "HTMLHint not installed, skipping HTML validation"
+        fi
+        
+    - name: Check file sizes
+      run: |
+        echo "📊 File size analysis:"
+        find . -name "*.js" -o -name "*.css" -o -name "*.html" | head -20 | xargs ls -lh
+        
+    - name: Deploy to Netlify (Preview)
+      if: github.event_name == 'pull_request'
+      uses: netlify/actions/cli@master
+      with:
+        args: deploy --dir=. --functions=netlify/functions
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        
+    - name: Deploy to Netlify (Production)
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      uses: netlify/actions/cli@master
+      with:
+        args: deploy --prod --dir=. --functions=netlify/functions
+      env:
+        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        
+    - name: Run post-deployment tests
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      run: |
+        echo "🧪 Running post-deployment tests..."
+        # Add your post-deployment tests here
+        # For example: curl checks, lighthouse CI, etc.
+        
+    - name: Notify deployment status
+      if: always()
+      run: |
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✅ Deployment successful!"
+        else
+          echo "❌ Deployment failed!"
+        fi

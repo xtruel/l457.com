@@ -118,6 +118,9 @@ function renderPosts() {
           <span>${p.readTime}</span>
         </div>
       </div>
+      <div class="post-actions" style="position: absolute; top: 8px; right: 8px; opacity: 0; transition: opacity 0.2s;">
+        <button class="edit-post-btn" data-slug="${p.slug}" title="Edit this post" style="background: rgba(59, 130, 246, 0.9); border: none; color: white; padding: 6px 8px; border-radius: 6px; font-size: 12px; cursor: pointer;">✏️ Edit</button>
+      </div>
     </article>
   `).join('');
 }
@@ -210,10 +213,100 @@ function toggleBookmark(slug) {
 // Event delegation for opening posts
 function bindOpeners() {
   document.addEventListener('click', (e) => {
+    // Handle edit button clicks
+    if (e.target.classList.contains('edit-post-btn')) {
+      e.stopPropagation();
+      const slug = e.target.dataset.slug;
+      loadExistingPostForEdit(slug);
+      return;
+    }
+    
+    // Handle post card clicks
     const card = e.target.closest('[data-slug]');
-    if(card) openArticle(card.dataset.slug);
+    if(card && !e.target.closest('.post-actions')) {
+      openArticle(card.dataset.slug);
+    }
   });
   $('#backBtn').addEventListener('click', closeArticle);
+}
+
+// Load existing post for editing
+function loadExistingPostForEdit(slug) {
+  try {
+    // Find post in current posts array or localStorage
+    let post = posts.find(p => p.slug === slug);
+    
+    if (!post) {
+      // Try loading from localStorage
+      const savedPosts = JSON.parse(localStorage.getItem('blog_posts') || '{}');
+      post = savedPosts[slug];
+    }
+    
+    if (post) {
+      // Open admin panel
+      const adminOverlay = document.getElementById('adminOverlay');
+      if (adminOverlay) {
+        adminOverlay.classList.add('open');
+      }
+      
+      // Populate form fields
+      document.getElementById('postTitle').value = post.title || '';
+      document.getElementById('postCategory').value = post.category || 'tech';
+      document.getElementById('postExcerpt').value = post.excerpt || '';
+      document.getElementById('postContent').value = post.contentHtml || post.content || '';
+      document.getElementById('postCover').value = post.cover || '';
+      document.getElementById('postFeatured').checked = post.featured || false;
+      document.getElementById('postReadTime').value = post.readTime || '5 min';
+      
+      // Preserve metadata
+      if (post.metadata) {
+        window.currentPostMetadata = { ...post.metadata };
+      } else {
+        // Create metadata from existing post data
+        window.currentPostMetadata = {
+          createdAt: post.date ? new Date(post.date).toISOString() : new Date().toISOString(),
+          author: 'Admin',
+          version: 1
+        };
+      }
+      
+      // Update previews
+      const refreshCard = window.refreshCard;
+      if (typeof refreshCard === 'function') {
+        refreshCard();
+      }
+      
+      // Update live preview if available
+      const updateLivePreview = window.updateLivePreview;
+      if (typeof updateLivePreview === 'function') {
+        updateLivePreview();
+      }
+      
+      // Show cover preview if available
+      if (post.cover) {
+        const coverPreview = document.getElementById('coverPreview');
+        if (coverPreview) {
+          coverPreview.src = post.cover;
+          coverPreview.style.display = 'block';
+        }
+      }
+      
+      // Show success message
+      const adminInfo = document.getElementById('adminInfo');
+      if (adminInfo) {
+        adminInfo.textContent = `✏️ Editing: "${post.title}" - All data preserved for editing`;
+        adminInfo.style.color = '#10b981';
+      }
+      
+      console.log('Post loaded for editing:', slug, post);
+    } else {
+      console.error('Post not found for editing:', slug);
+      alert('Post not found for editing');
+    }
+  } catch (error) {
+    console.error('Error loading post for editing:', error);
+    alert('Error loading post for editing');
+  }
 }
 
 // Init
@@ -230,12 +323,79 @@ function init() {
 
 // Firebase setup
 let fbApp, fbAuth, db, storage;
+let firebaseInitialized = false;
+let firebaseError = null;
+
 function initFirebase() {
-  if (!window.FIREBASE_CONFIG) return;
-  fbApp = firebase.initializeApp(window.FIREBASE_CONFIG);
-  fbAuth = firebase.auth();
-  db = firebase.firestore();
-  try { if (firebase.storage) storage = firebase.storage(); } catch(_) { storage = null; }
+  if (!window.FIREBASE_CONFIG) {
+    console.warn('Firebase config not found. Running in local-only mode.');
+    firebaseError = 'Firebase configuration not found';
+    return;
+  }
+  
+  // Validate Firebase configuration
+  const requiredFields = ['apiKey', 'authDomain', 'projectId'];
+  const missingFields = requiredFields.filter(field => 
+    !window.FIREBASE_CONFIG[field] || 
+    window.FIREBASE_CONFIG[field].includes('YOUR_') || 
+    window.FIREBASE_CONFIG[field] === 'YOUR_PROJECT_ID'
+  );
+  
+  if (missingFields.length > 0) {
+    console.warn('Firebase config incomplete. Missing or placeholder values for:', missingFields);
+    firebaseError = `Firebase configuration incomplete: ${missingFields.join(', ')}`;
+    return;
+  }
+  
+  try {
+    fbApp = firebase.initializeApp(window.FIREBASE_CONFIG);
+    fbAuth = firebase.auth();
+    db = firebase.firestore();
+    
+    // Test connection with timeout
+    const connectionTest = db.collection('_test').limit(1).get();
+    const timeout = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Connection timeout')), 5000)
+    );
+    
+    Promise.race([connectionTest, timeout])
+      .then(() => {
+        firebaseInitialized = true;
+        console.log('Firebase connected successfully');
+      })
+      .catch((error) => {
+        console.warn('Firebase connection test failed:', error.message);
+        firebaseError = `Firebase connection failed: ${error.message}`;
+      });
+    
+    try { 
+      if (firebase.storage) storage = firebase.storage(); 
+    } catch(_) { 
+      storage = null; 
+    }
+    
+  } catch (error) {
+    console.error('Firebase initialization failed:', error);
+    firebaseError = `Firebase initialization failed: ${error.message}`;
+    fbApp = null;
+    fbAuth = null;
+    db = null;
+    storage = null;
+  }
+}
+
+// Check Firebase status
+function getFirebaseStatus() {
+  if (!window.FIREBASE_CONFIG) {
+    return { connected: false, error: 'No Firebase configuration found', mode: 'local-only' };
+  }
+  if (firebaseError) {
+    return { connected: false, error: firebaseError, mode: 'local-only' };
+  }
+  if (firebaseInitialized && db) {
+    return { connected: true, error: null, mode: 'firebase' };
+  }
+  return { connected: false, error: 'Firebase initializing...', mode: 'local-only' };
 }
 
 // Username management (unique, no password)
@@ -1201,29 +1361,88 @@ function bindAdminUI() {
 
   // Save post with metadata preservation
   function savePostWithMetadata() {
-    const title = document.getElementById('postTitle').value;
+    // Get form values with proper trimming
+    const title = (document.getElementById('postTitle').value || '').trim();
+    const category = document.getElementById('postCategory').value || 'tech';
+    const excerpt = (document.getElementById('postExcerpt').value || '').trim();
+    const content = (document.getElementById('postContent').value || '').trim();
+    const coverUrl = (document.getElementById('postCover').value || '').trim();
+    
+    // Validation object to track errors
+    const validation = {
+      errors: [],
+      isValid: true
+    };
+    
+    // Required field validation
+    if (!title) {
+      validation.errors.push('Title is required');
+      validation.isValid = false;
+    } else if (title.length < 3) {
+      validation.errors.push('Title must be at least 3 characters long');
+      validation.isValid = false;
+    } else if (title.length > 100) {
+      validation.errors.push('Title must be less than 100 characters');
+      validation.isValid = false;
+    }
+    
+    if (!content) {
+      validation.errors.push('Content is required');
+      validation.isValid = false;
+    } else if (content.length < 10) {
+      validation.errors.push('Content must be at least 10 characters long');
+      validation.isValid = false;
+    }
+    
+    if (!excerpt) {
+      validation.errors.push('Excerpt is required');
+      validation.isValid = false;
+    } else if (excerpt.length < 10) {
+      validation.errors.push('Excerpt must be at least 10 characters long');
+      validation.isValid = false;
+    } else if (excerpt.length > 200) {
+      validation.errors.push('Excerpt must be less than 200 characters');
+      validation.isValid = false;
+    }
+    
+    // URL validation for cover image
+    if (coverUrl && !isValidUrl(coverUrl)) {
+      validation.errors.push('Cover URL must be a valid URL');
+      validation.isValid = false;
+    }
+    
+    // Generate slug and validate uniqueness
+    const slug = generateSlug(title);
+    if (!slug) {
+      validation.errors.push('Unable to generate valid slug from title');
+      validation.isValid = false;
+    }
+    
     const postData = {
       title: title,
-      slug: generateSlug(title),
-      category: document.getElementById('postCategory').value,
-      excerpt: document.getElementById('postExcerpt').value,
-      content: document.getElementById('postContent').value,
-      coverUrl: document.getElementById('postCover').value,
+      slug: slug,
+      category: category,
+      excerpt: excerpt,
+      content: content,
+      coverUrl: coverUrl,
+      validation: validation,
       
       // Preserva metadati esistenti e aggiunge nuovi
       metadata: {
         ...(window.currentPostMetadata || {}),
         lastModified: new Date().toISOString(),
-        wordCount: document.getElementById('postContent').value.split(/\s+/).length,
-        hasImages: /!\[.*?\]\(.*?\)/.test(document.getElementById('postContent').value),
-        hasVideos: /<iframe.*youtube.*<\/iframe>/.test(document.getElementById('postContent').value)
+        wordCount: content.split(/\s+/).filter(word => word.length > 0).length,
+        hasImages: /!\[.*?\]\(.*?\)/.test(content),
+        hasVideos: /<iframe.*youtube.*<\/iframe>/.test(content),
+        characterCount: content.length,
+        estimatedReadTime: Math.max(1, Math.ceil(content.split(/\s+/).filter(word => word.length > 0).length / 200)) + ' min'
       }
     };
     
     // Se è un nuovo post, aggiungi metadati di creazione
     if (!window.currentPostMetadata) {
       postData.metadata.createdAt = new Date().toISOString();
-      postData.metadata.author = localStorage.getItem('username') || 'Anonymous';
+      postData.metadata.author = localStorage.getItem('username') || 'Admin';
       postData.metadata.version = 1;
     } else {
       postData.metadata.version = (window.currentPostMetadata.version || 1) + 1;
@@ -1231,41 +1450,209 @@ function bindAdminUI() {
     
     return postData;
   }
+  
+  // Helper function to validate URLs
+  function isValidUrl(string) {
+    try {
+      new URL(string);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
 
   // Publish handler - moved inside bindAdminUI to ensure proper binding
   const publishBtn = document.getElementById('publishPost');
   if (publishBtn) {
     publishBtn.addEventListener('click', async () => {
-    const postData = savePostWithMetadata();
-    const { slug, title, category, coverUrl, excerpt, content, metadata } = postData;
-    const featured = document.getElementById('postFeatured').checked;
-    const readTime = document.getElementById('postReadTime').value.trim() || '5 min';
-
-    if (!slug || !title) { info.textContent = 'Slug and title are required'; return; }
-    
-    const postObject = {
-      slug, title, category, 
-      cover: coverUrl, excerpt, featured, readTime, 
-      date: metadata.createdAt ? metadata.createdAt.slice(0,10) : new Date().toISOString().slice(0,10), 
-      contentHtml: content,
-      metadata: metadata
-    };
-    
-    // Try Firebase first, fallback to localStorage
-    if (db) {
-      try {
-        const postDoc = db.collection('posts').doc(slug);
-        await postDoc.set(postObject, { merge: true });
-        info.textContent = 'Published to Firebase with metadata preserved! Refresh the home to see the new post.';
-      } catch (e) {
-        info.textContent = 'Firebase error, saving locally: ' + e.message;
-        saveToLocalStorage(slug, postObject);
+      // Prevent multiple clicks during publishing
+      if (publishBtn.disabled) return;
+      
+      const postData = savePostWithMetadata();
+      const { slug, title, category, coverUrl, excerpt, content, metadata, validation } = postData;
+      
+      // Check validation results
+      if (!validation.isValid) {
+        const errorList = validation.errors.map(error => `• ${error}`).join('<br>');
+        info.innerHTML = `<div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 12px; margin: 8px 0;"><strong>❌ Validation Failed:</strong><br>${errorList}</div>`;
+        info.style.color = '#ef4444';
+        
+        // Add visual feedback to invalid fields
+        const invalidFields = [];
+        validation.errors.forEach(error => {
+          let field = null;
+          if (error.includes('Title')) {
+            field = document.getElementById('postTitle');
+          } else if (error.includes('Content')) {
+            field = document.getElementById('postContent');
+          } else if (error.includes('Excerpt')) {
+            field = document.getElementById('postExcerpt');
+          } else if (error.includes('Cover URL')) {
+            field = document.getElementById('postCover');
+          }
+          
+          if (field) {
+            field.style.borderColor = '#ef4444';
+            field.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.1)';
+            invalidFields.push(field);
+          }
+        });
+        
+        // Focus on first invalid field and setup error clearing
+        if (invalidFields.length > 0) {
+          invalidFields[0].focus();
+          
+          // Clear error styling when user starts interacting
+          invalidFields.forEach(field => {
+            const clearErrorStyling = () => {
+              field.style.borderColor = '';
+              field.style.boxShadow = '';
+              field.removeEventListener('input', clearErrorStyling);
+              field.removeEventListener('focus', clearErrorStyling);
+            };
+            field.addEventListener('input', clearErrorStyling, { once: true });
+            field.addEventListener('focus', clearErrorStyling, { once: true });
+          });
+        }
+        
+        return;
       }
-    } else {
-      // Save to localStorage as fallback
-      saveToLocalStorage(slug, postObject);
-      info.textContent = 'Published locally! Firebase not configured. Refresh the home to see the new post.';
-    }
+      
+      const featured = document.getElementById('postFeatured').checked;
+      const readTime = document.getElementById('postReadTime').value.trim() || metadata.estimatedReadTime || '5 min';
+
+      // Additional safety check (should not be needed with validation)
+      if (!slug || !title) { 
+        info.textContent = '❌ Critical error: Missing slug or title after validation';
+        info.style.color = '#ef4444';
+        return; 
+      }
+      
+      // Show loading state
+      const originalText = publishBtn.textContent;
+      publishBtn.disabled = true;
+      publishBtn.textContent = 'Publishing...';
+      publishBtn.style.opacity = '0.7';
+      info.textContent = 'Publishing your post...';
+      info.style.color = '#3b82f6';
+      
+      const postObject = {
+        slug, title, category, 
+        cover: coverUrl, excerpt, featured, readTime, 
+        date: metadata.createdAt ? metadata.createdAt.slice(0,10) : new Date().toISOString().slice(0,10), 
+        contentHtml: content,
+        metadata: metadata
+      };
+      
+      try {
+        // Check Firebase status and provide appropriate feedback
+        const firebaseStatus = getFirebaseStatus();
+        
+        if (firebaseStatus.connected && db) {
+          try {
+            // Validate post object before sending to Firebase
+            if (!postObject.slug || !postObject.title || !postObject.contentHtml) {
+              throw new Error('Invalid post data: missing required fields');
+            }
+            
+            const postDoc = db.collection('posts').doc(slug);
+            await postDoc.set(postObject, { merge: true });
+            
+            // Update local storage as backup
+            saveToLocalStorage(slug, postObject);
+            
+            // Success feedback with enhanced notification
+            publishBtn.textContent = '✓ Published!';
+            publishBtn.style.background = 'linear-gradient(90deg, #10b981, #059669)';
+            info.innerHTML = `<div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 12px; margin: 8px 0;"><strong>✅ Success!</strong><br>Published to Firebase and backed up locally. Your post is now live!</div>`;
+            info.style.color = '#10b981';
+            
+            // Clear any previous error styling from form fields
+            ['postTitle', 'postContent', 'postExcerpt', 'postCover'].forEach(fieldId => {
+              const field = document.getElementById(fieldId);
+              if (field) {
+                field.style.borderColor = '';
+                field.style.boxShadow = '';
+              }
+            });
+            
+            // Reset button after 2 seconds
+            setTimeout(() => {
+              publishBtn.textContent = originalText;
+              publishBtn.style.background = '';
+              publishBtn.style.opacity = '';
+              publishBtn.disabled = false;
+            }, 2000);
+            
+          } catch (e) {
+            console.error('Firebase publishing error:', e);
+            
+            // Try to save locally as fallback
+            try {
+              saveToLocalStorage(slug, postObject);
+              
+              // Fallback success feedback
+              publishBtn.textContent = '⚠️ Published Locally';
+              publishBtn.style.background = 'linear-gradient(90deg, #f59e0b, #d97706)';
+              info.textContent = `⚠️ Firebase error: ${e.message}. Post saved locally and can be synced later.`;
+              info.style.color = '#f59e0b';
+              
+            } catch (localError) {
+              throw new Error(`Firebase failed: ${e.message}. Local storage also failed: ${localError.message}`);
+            }
+            
+            // Reset button after 3 seconds for warnings
+            setTimeout(() => {
+              publishBtn.textContent = originalText;
+              publishBtn.style.background = '';
+              publishBtn.style.opacity = '';
+              publishBtn.disabled = false;
+            }, 3000);
+          }
+        } else {
+          // Firebase not available, use local storage
+          try {
+            saveToLocalStorage(slug, postObject);
+            
+            // Local success feedback with status explanation
+            publishBtn.textContent = '✓ Saved Locally';
+            publishBtn.style.background = 'linear-gradient(90deg, #6366f1, #4f46e5)';
+            
+            if (firebaseStatus.error) {
+              info.textContent = `📱 Published locally. Firebase issue: ${firebaseStatus.error}`;
+            } else {
+              info.textContent = '📱 Published locally! Configure Firebase for cloud sync.';
+            }
+            info.style.color = '#6366f1';
+            
+          } catch (localError) {
+            throw new Error(`Local storage failed: ${localError.message}. No backup available.`);
+          }
+          
+          // Reset button after 2 seconds
+          setTimeout(() => {
+            publishBtn.textContent = originalText;
+            publishBtn.style.background = '';
+            publishBtn.style.opacity = '';
+            publishBtn.disabled = false;
+          }, 2000);
+        }
+      } catch (error) {
+        // Critical error feedback
+        console.error('Critical publishing error:', error);
+        publishBtn.textContent = '❌ Failed';
+        publishBtn.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
+        info.textContent = `❌ Publishing failed: ${error.message}`;
+        info.style.color = '#ef4444';
+        
+        // Reset button after 4 seconds for errors
+        setTimeout(() => {
+          publishBtn.textContent = originalText;
+          publishBtn.style.background = '';
+          publishBtn.style.opacity = '';
+          publishBtn.disabled = false;
+        }, 4000);
+      }
     });
   }
    
@@ -1427,6 +1814,75 @@ openArticle = function(slug) {
   commentsUnsub = listenComments(slug);
 };
 
+// 📁 LOCAL UPLOAD SOLUTION - Download posts without Firebase!
+function downloadPostAsHTML(slug) {
+  const savedPosts = JSON.parse(localStorage.getItem('blog_posts') || '{}');
+  const post = savedPosts[slug];
+  
+  if (!post) {
+    alert('Post not found!');
+    return;
+  }
+  
+  const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${post.title}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; line-height: 1.6; }
+    .post-header { margin-bottom: 30px; }
+    .post-title { font-size: 2.5em; margin-bottom: 10px; }
+    .post-meta { color: #666; margin-bottom: 20px; }
+    .post-content { font-size: 1.1em; }
+    img { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <article>
+    <header class="post-header">
+      <h1 class="post-title">${post.title}</h1>
+      <div class="post-meta">
+        <span>📅 ${post.date}</span>
+        <span>⏱️ ${post.readTime}</span>
+        <span>🏷️ ${post.category}</span>
+      </div>
+      ${post.cover ? `<img src="${post.cover}" alt="${post.title}" style="width: 100%; border-radius: 8px; margin: 20px 0;">` : ''}
+    </header>
+    <div class="post-content">
+      ${post.contentHtml || post.content}
+    </div>
+  </article>
+</body>
+</html>`;
+  
+  const blob = new Blob([htmlContent], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${slug}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function downloadAllPosts() {
+  const savedPosts = JSON.parse(localStorage.getItem('blog_posts') || '{}');
+  const posts = Object.values(savedPosts);
+  
+  if (posts.length === 0) {
+    alert('No posts found! Create some posts first.');
+    return;
+  }
+  
+  // Download each post as HTML with delay
+  posts.forEach((post, index) => {
+    setTimeout(() => downloadPostAsHTML(post.slug), index * 200);
+  });
+  
+  alert(`Downloading ${posts.length} posts! Check your Downloads folder.`);
+}
+
 // Local posts (static files) loader
 async function fetchPostsFromLocal() {
   try {
@@ -1465,16 +1921,55 @@ async function initLocalContent() {
   }
 }
 
-// Extend init
-const origInit = init;
-init = function() {
-  origInit();
-  // Load local posts first (if available), then try Firestore override
-  initLocalContent().then(() => {
-    initDynamicContent();
+// Add download buttons to admin panel
+function addDownloadButtons() {
+  const adminActions = document.querySelector('.admin-actions');
+  if (!adminActions || document.getElementById('downloadSection')) return;
+  
+  const downloadSection = document.createElement('div');
+  downloadSection.id = 'downloadSection';
+  downloadSection.innerHTML = `
+    <div style="margin-top: 20px; padding: 15px; background: #f0f9ff; border: 2px solid #0ea5e9; border-radius: 8px;">
+      <h4 style="margin: 0 0 10px 0; color: #0369a1;">📁 Download Posts (No Firebase needed!)</h4>
+      <button id="downloadAllBtn" class="btn-secondary" style="margin: 5px; background: #0ea5e9; color: white;">📦 Download All Posts</button>
+      <button id="downloadCurrentBtn" class="btn-secondary" style="margin: 5px;">📄 Download Current Post</button>
+      <p style="font-size: 0.9em; color: #0369a1; margin: 10px 0 0 0;">💡 Your posts are saved locally and can be downloaded as HTML files!</p>
+    </div>
+  `;
+  
+  adminActions.appendChild(downloadSection);
+  
+  // Add event listeners
+  document.getElementById('downloadAllBtn')?.addEventListener('click', downloadAllPosts);
+  document.getElementById('downloadCurrentBtn')?.addEventListener('click', () => {
+    const title = document.getElementById('postTitle')?.value;
+    if (title) {
+      const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      downloadPostAsHTML(slug);
+    } else {
+      alert('Please enter a post title first!');
+    }
   });
-  bindAdminUI();
-};
+}
+
+// Extend init
+ const origInit = init;
+ init = function() {
+   origInit();
+   // Load local posts first (if available), then try Firestore override
+   initLocalContent().then(() => {
+     initDynamicContent();
+   });
+   bindAdminUI();
+   
+   // Add download buttons when admin panel opens
+   const adminToggle = document.getElementById('adminToggle');
+   if (adminToggle) {
+     adminToggle.addEventListener('click', () => {
+       setTimeout(addDownloadButtons, 300);
+     });
+   }
+ };
 
 // re-run
 init();

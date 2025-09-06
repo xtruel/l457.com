@@ -132,6 +132,20 @@ body {
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
+  position: relative;
+  transition: all 0.2s ease;
+}
+.post-card:hover { 
+  transform: translateY(-2px); 
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2); 
+}
+.post-card:hover .post-actions { 
+  opacity: 1; 
+}
+.edit-post-btn:hover {
+  background: rgba(59, 130, 246, 1) !important;
+  transform: scale(1.05);
+  transition: all 0.2s ease;
 }
 .post-thumb { width: 100%; aspect-ratio: 16/9; background-position: center; background-size: cover; }
 .post-body { padding: 12px; }
@@ -225,7 +239,33 @@ body {
 .form-row { display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
 .form-row.inline { flex-direction:row; align-items:center; gap:14px; }
 .form-actions { display:flex; justify-content:flex-end; }
-.btn-primary { background: linear-gradient(90deg, var(--accent), var(--accent-2)); color:#0b0b0c; border:none; border-radius:12px; padding:10px 14px; }
+.btn-primary { 
+  background: linear-gradient(90deg, var(--accent), var(--accent-2)); 
+  color: #0b0b0c; 
+  border: none; 
+  border-radius: 12px; 
+  padding: 12px 18px; 
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary:hover:not(:disabled) { 
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+  filter: brightness(1.05);
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+.btn-primary:disabled {
+  cursor: not-allowed;
+  transform: none;
+}
 .admin-close, .admin-auth { background: var(--glass); border:1px solid var(--border); color: var(--text); border-radius:12px; padding:10px 12px; }
 .admin-info { color: var(--muted); margin-bottom:12px; }
 .admin-btn { background: var(--glass); border:1px solid var(--border); color: var(--text); border-radius:12px; padding:8px 10px; }

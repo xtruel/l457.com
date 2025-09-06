@@ -5,7 +5,11 @@
   "main": "index.html",
   "scripts": {
     "start": "serve",
-    "build": "echo 'No build step required'"
+    "build": "echo 'No build step required'",
+    "deploy": "netlify deploy --prod",
+    "deploy:preview": "netlify deploy",
+    "validate": "node scripts/validate-deployment.js",
+    "setup:firebase": "node scripts/setup-firebase.js"
   },
   "dependencies": {
     "serve": "^14.2.1"

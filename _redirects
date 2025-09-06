@@ -1,0 +1,27 @@
+# Netlify redirects file
+# Handle client-side routing for single page application
+
+# Admin routes - require authentication
+/admin/*  /admin/index.html  200
+
+# Blog post routes
+/posts/*  /index.html  200
+
+# API routes (if any)
+/api/*  /.netlify/functions/:splat  200
+
+# Catch-all for client-side routing
+/*  /index.html  200
+
+# Security redirects
+/wp-admin/*  /  301!
+/wp-login.php  /  301!
+/.env  /  301!
+/config.php  /  301!
+
+# Force HTTPS
+http://l457.com/*  https://l457.com/:splat  301!
+http://www.l457.com/*  https://l457.com/:splat  301!
+
+# Redirect www to non-www
+https://www.l457.com/*  https://l457.com/:splat  301!
