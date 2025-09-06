@@ -1,3 +1,8 @@
+// Local admin configuration for production
+window.LOCAL_ADMIN = {
+  password: 'admin123'
+};
+
 // Data: posts
 const posts = [
   {
