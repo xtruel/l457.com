@@ -29,6 +29,24 @@ function safeJoin(base, target) {
 const server = http.createServer((req, res) => {
   // Handle API requests
   if (req.url === '/api/publish' && req.method === 'POST') {
+    // Basic authentication check
+    const authHeader = req.headers['authorization'];
+    if (!authHeader || !authHeader.startsWith('Basic ')) {
+      res.writeHead(401, { 'WWW-Authenticate': 'Basic realm="Admin Access"', 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Authentication required' }));
+      return;
+    }
+    
+    const base64Credentials = authHeader.split(' ')[1];
+    const credentials = Buffer.from(base64Credentials, 'base64').toString('ascii');
+    const [username, password] = credentials.split(':');
+    
+    if (username !== 'admin' || password !== process.env.ADMIN_PASSWORD) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ success: false, message: 'Invalid credentials' }));
+      return;
+    }
+    
     let body = '';
     req.on('data', chunk => {
       body += chunk.toString();
