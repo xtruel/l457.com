@@ -7,22 +7,25 @@ window.ALLOWED_ADMIN_EMAILS = [
   // 'your-email@gmail.com'
 ];
 
-// Firebase Configuration
+// Import Firebase modules (for modular SDK)
+// Note: These imports work with bundlers like webpack/rollup
+// For direct browser usage, we'll use the legacy SDK until bundler is set up
+
+// Firebase Configuration - Updated with latest config
 const firebaseConfig = {
-  // Make config globally accessible for modules
-};
-window.firebaseConfig = firebaseConfig;
-Object.assign(firebaseConfig, {
   apiKey: "AIzaSyCWlYJp3xZDnNtU7CoBngWZZdg27aOlIdE",
   authDomain: "l457-4444.firebaseapp.com",
   projectId: "l457-4444",
   storageBucket: "l457-4444.firebasestorage.app",
   messagingSenderId: "548269746173",
-  appId: "1:548269746173:web:a8fec18e83641978d45b94",
-  measurementId: "G-9CZLXBNP6K"
-});
+  appId: "1:548269746173:web:df9197133eb30c4cd45b94",
+  measurementId: "G-36R3C46TV0"
+};
 
-// Initialize Firebase
+// Make config globally accessible
+window.firebaseConfig = firebaseConfig;
+
+// Initialize Firebase (using legacy SDK for browser compatibility)
 let app, auth, db, storage, analytics;
 try {
   app = firebase.initializeApp(firebaseConfig);
@@ -34,7 +37,7 @@ try {
   // Make Firebase app globally available for Vertex AI
   window.firebaseApp = app;
   
-  console.log('Firebase initialized successfully');
+  console.log('Firebase initialized successfully with updated config');
 } catch (error) {
   console.error('Firebase initialization failed:', error);
 }
