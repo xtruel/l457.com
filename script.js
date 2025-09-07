@@ -558,7 +558,7 @@ async function ensureUsername() {
   });
 }
 
-// Comments will be handled by Giscus - no local storage needed
+// Comments section removed
 
 // Admin auth + upload
 let adminUnsub = null;
@@ -1820,7 +1820,7 @@ function loadPostsFromLocalStorage() {
   }
 }
 
-// Comments handled by Giscus - no local binding needed
+// Comments section removed
 
 // 📁 LOCAL UPLOAD SOLUTION - Download posts without Firebase!
 function downloadPostAsHTML(slug) {
