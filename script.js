@@ -248,6 +248,7 @@ const edited = await model.edit(image, { prompt: 'mood cinematico, tonalità fre
 let currentCategory = 'all';
 let bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
 let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+let currentUser = null;
 
 const products = [
   {
@@ -275,6 +276,26 @@ const products = [
     ]
   }
 ];
+
+async function saveProductToFirestore(prod) {
+  try {
+    await db.collection('products').doc(prod.slug).set({
+      ...prod,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    return true;
+  } catch (e) { return false; }
+}
+
+async function getProductsFromFirestore() {
+  try {
+    const snap = await db.collection('products').orderBy('createdAt','desc').get();
+    const list = [];
+    snap.forEach(d => list.push(d.data()));
+    return list;
+  } catch (e) { return []; }
+}
 
 // Utilities
 function $(sel, root=document){ return root.querySelector(sel); }
@@ -518,6 +539,74 @@ function bindShopUI() {
         window.location.href = data.url;
       }
     } catch (_) {}
+  });
+
+  setupPaypal();
+}
+
+async function setupPaypal() {
+  const btns = document.getElementById('paypalButtons');
+  if (!btns) return;
+  try {
+    const sdk = await fetch('/api/paypal-sdk-url').then(r => r.json());
+    if (sdk && sdk.url) {
+      const s = document.createElement('script');
+      s.src = sdk.url; s.onload = renderPaypalButtons; document.head.appendChild(s);
+    }
+  } catch (_) {}
+}
+
+function renderPaypalButtons() {
+  if (!window.paypal) return;
+  const btns = document.getElementById('paypalButtons');
+  const items = cart.map(i => ({ price: i.price, quantity: i.quantity }));
+  window.paypal.Buttons({
+    createOrder: async () => {
+      const res = await fetch('/api/paypal-create-order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ items })});
+      const data = await res.json();
+      return data.id;
+    },
+    onApprove: async (data) => {
+      const res = await fetch('/api/paypal-capture-order', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ orderId: data.orderID })});
+      const out = await res.json();
+      alert('Payment completed');
+      cart = []; saveCart(); closeCart();
+    },
+    onError: () => { alert('PayPal error'); }
+  }).render(btns);
+}
+
+function bindAuthMenu() {
+  const sign = document.getElementById('signInBtn');
+  const adminBtn = document.getElementById('adminBtn');
+  const overlay = document.getElementById('adminOverlay');
+  const info = document.getElementById('adminInfo');
+  const close = document.getElementById('adminClose');
+  const save = document.getElementById('prodSave');
+  const ALLOWED = (window.ALLOWED_ADMIN_EMAILS || ['truel3000lofi@gmail.com']);
+  sign?.addEventListener('click', async () => {
+    if (!auth) return;
+    if (currentUser) { await auth.signOut(); currentUser = null; adminBtn.style.display='none'; sign.textContent='Sign in'; return; }
+    try {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      const res = await auth.signInWithPopup(provider);
+      if (ALLOWED.includes(res.user.email)) { currentUser = res.user; adminBtn.style.display=''; sign.textContent='Sign out'; info && (info.textContent=''); }
+      else { await auth.signOut(); alert('Unauthorized'); }
+    } catch (e) { alert('Auth error'); }
+  });
+  adminBtn?.addEventListener('click', () => { overlay.style.display='block'; });
+  close?.addEventListener('click', () => { overlay.style.display='none'; });
+  save?.addEventListener('click', async () => {
+    const title = document.getElementById('prodTitle').value.trim();
+    const price = parseFloat(document.getElementById('prodPrice').value || '0');
+    const image = document.getElementById('prodImage').value.trim() || 'placeholder.svg';
+    const category = document.getElementById('prodCategory').value || 'tshirts';
+    if (!title || !price) { info.textContent = 'Title and price required'; return; }
+    const slug = title.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'');
+    const prod = { slug, title, image, price, variants: [{ name:'S'},{ name:'M'},{ name:'L'},{ name:'XL'}], category };
+    const ok = await saveProductToFirestore(prod);
+    info.textContent = ok ? 'Saved' : 'Save failed';
+    if (ok) { products.unshift(prod); renderShop(); }
   });
 }
 
@@ -2159,10 +2248,13 @@ function addDownloadButtons() {
   });
 }
 
-init = function() {
+init = async function() {
   renderShop();
   bindShopUI();
+  bindAuthMenu();
   saveCart();
+  const cloud = await getProductsFromFirestore();
+  if (cloud && cloud.length) { products.splice(0, products.length, ...cloud); renderShop(); }
 };
 
 init();

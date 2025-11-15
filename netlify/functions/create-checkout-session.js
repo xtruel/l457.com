@@ -18,10 +18,11 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: 'No items' };
     }
 
+    const EU = ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IE','IT','LV','LT','LU','MT','NL','PL','PT','RO','SK','SI','ES','SE'];
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       line_items: items.map((i) => ({ price: i.priceId, quantity: i.quantity || 1 })),
-      shipping_address_collection: { allowed_countries: ['IT','US','GB','DE','FR','ES','NL','BE'] },
+      shipping_address_collection: { allowed_countries: EU },
       phone_number_collection: { enabled: true },
       automatic_tax: { enabled: true },
       allow_promotion_codes: true,

@@ -1,0 +1,68 @@
+[debug] [2025-11-15T19:47:00.643Z] ----------------------------------------------------------------------
+[debug] [2025-11-15T19:47:00.658Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\eugen\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting --project l457-4444-4c183 --non-interactive --debug
+[debug] [2025-11-15T19:47:00.658Z] CLI Version:   14.17.0
+[debug] [2025-11-15T19:47:00.659Z] Platform:      win32
+[debug] [2025-11-15T19:47:00.659Z] Node Version:  v22.19.0
+[debug] [2025-11-15T19:47:00.660Z] Time:          Sat Nov 15 2025 20:47:00 GMT+0100 (Ora standard dell’Europa centrale)
+[debug] [2025-11-15T19:47:00.660Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-11-15T19:47:01.356Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-11-15T19:47:01.358Z] > authorizing via signed-in user (truel3000lofi@gmail.com)
+[debug] [2025-11-15T19:47:01.359Z] [iam] checking project l457-4444-4c183 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-11-15T19:47:01.365Z] Checked if tokens are valid: true, expires at: 1763239486932
+[debug] [2025-11-15T19:47:01.368Z] Checked if tokens are valid: true, expires at: 1763239486932
+[debug] [2025-11-15T19:47:01.372Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/l457-4444-4c183:testIamPermissions [none]
+[debug] [2025-11-15T19:47:01.372Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/l457-4444-4c183:testIamPermissions x-goog-quota-user=projects/l457-4444-4c183
+[debug] [2025-11-15T19:47:01.372Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/l457-4444-4c183:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-11-15T19:47:02.468Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/l457-4444-4c183:testIamPermissions 200
+[debug] [2025-11-15T19:47:02.469Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/l457-4444-4c183:testIamPermissions {}
+[debug] [2025-11-15T19:47:02.469Z] [iam] error while checking permissions, command may fail: Authorization failed. This account is missing the following required permissions on project l457-4444-4c183:
+
+  firebase.projects.get
+  firebasehosting.sites.update
+[debug] [2025-11-15T19:47:02.471Z] Checked if tokens are valid: true, expires at: 1763239486932
+[debug] [2025-11-15T19:47:02.471Z] Checked if tokens are valid: true, expires at: 1763239486932
+[debug] [2025-11-15T19:47:02.472Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/l457-4444-4c183 [none]
+[debug] [2025-11-15T19:47:03.020Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/l457-4444-4c183 403
+[debug] [2025-11-15T19:47:03.029Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/l457-4444-4c183 {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2025-11-15T19:47:03.039Z] Request to https://firebase.googleapis.com/v1beta1/projects/l457-4444-4c183 had HTTP Error: 403, The caller does not have permission
+[debug] [2025-11-15T19:47:03.503Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/l457-4444-4c183 had HTTP Error: 403, The caller does not have permission
+    at responseToError (C:\Users\eugen\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:52:12)
+    at RetryOperation._fn (C:\Users\eugen\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:312:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[error] 
+[error] Error: Failed to get Firebase project l457-4444-4c183. Please make sure the project exists and your account has permission to access it.
+[debug] [2025-11-15T19:51:52.285Z] ----------------------------------------------------------------------
+[debug] [2025-11-15T19:51:52.291Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\eugen\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only hosting --project l457-4444-4c183 --non-interactive
+[debug] [2025-11-15T19:51:52.292Z] CLI Version:   14.17.0
+[debug] [2025-11-15T19:51:52.292Z] Platform:      win32
+[debug] [2025-11-15T19:51:52.292Z] Node Version:  v22.19.0
+[debug] [2025-11-15T19:51:52.296Z] Time:          Sat Nov 15 2025 20:51:52 GMT+0100 (Ora standard dell’Europa centrale)
+[debug] [2025-11-15T19:51:52.297Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-11-15T19:51:53.379Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-11-15T19:51:53.380Z] > authorizing via signed-in user (truel3000lofi@gmail.com)
+[debug] [2025-11-15T19:51:53.381Z] [iam] checking project l457-4444-4c183 for permissions ["firebase.projects.get","firebasehosting.sites.update"]
+[debug] [2025-11-15T19:51:53.386Z] Checked if tokens are valid: true, expires at: 1763239486932
+[debug] [2025-11-15T19:51:53.386Z] Checked if tokens are valid: true, expires at: 1763239486932
+[debug] [2025-11-15T19:51:53.389Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/l457-4444-4c183:testIamPermissions [none]
+[debug] [2025-11-15T19:51:53.389Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/l457-4444-4c183:testIamPermissions x-goog-quota-user=projects/l457-4444-4c183
+[debug] [2025-11-15T19:51:53.389Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/l457-4444-4c183:testIamPermissions {"permissions":["firebase.projects.get","firebasehosting.sites.update"]}
+[debug] [2025-11-15T19:51:55.912Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/l457-4444-4c183:testIamPermissions 200
+[debug] [2025-11-15T19:51:55.913Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/l457-4444-4c183:testIamPermissions {}
+[debug] [2025-11-15T19:51:55.913Z] [iam] error while checking permissions, command may fail: Authorization failed. This account is missing the following required permissions on project l457-4444-4c183:
+
+  firebase.projects.get
+  firebasehosting.sites.update
+[debug] [2025-11-15T19:51:55.915Z] Checked if tokens are valid: true, expires at: 1763239486932
+[debug] [2025-11-15T19:51:55.916Z] Checked if tokens are valid: true, expires at: 1763239486932
+[debug] [2025-11-15T19:51:55.923Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects/l457-4444-4c183 [none]
+[debug] [2025-11-15T19:51:56.786Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects/l457-4444-4c183 403
+[debug] [2025-11-15T19:51:56.786Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects/l457-4444-4c183 {"error":{"code":403,"message":"The caller does not have permission","status":"PERMISSION_DENIED"}}
+[debug] [2025-11-15T19:51:56.797Z] Request to https://firebase.googleapis.com/v1beta1/projects/l457-4444-4c183 had HTTP Error: 403, The caller does not have permission
+[debug] [2025-11-15T19:51:57.179Z] FirebaseError: Request to https://firebase.googleapis.com/v1beta1/projects/l457-4444-4c183 had HTTP Error: 403, The caller does not have permission
+    at responseToError (C:\Users\eugen\AppData\Roaming\npm\node_modules\firebase-tools\lib\responseToError.js:52:12)
+    at RetryOperation._fn (C:\Users\eugen\AppData\Roaming\npm\node_modules\firebase-tools\lib\apiv2.js:312:77)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+[error] 
+[error] Error: Failed to get Firebase project l457-4444-4c183. Please make sure the project exists and your account has permission to access it.
