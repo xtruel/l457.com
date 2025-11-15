@@ -173,7 +173,7 @@ const posts = [
     date: "2025-09-01",
     readTime: "6 min",
     excerpt: "Come usare il modello di Google per l'editing di immagini: setup, prompt e best practice.",
-    cover: "placeholder.svg",
+    cover: "covers/nano-banana-cover.svg",
     featured: true,
     content: `
       <div class="article">
@@ -201,7 +201,7 @@ const edited = await model.edit(image, { prompt: 'mood cinematico, tonalità fre
     date: "2025-08-18",
     readTime: "4 min",
     excerpt: "Palette limitata, gerarchia tipografica e griglie per un look d'impatto.",
-    cover: "placeholder.svg",
+    cover: "covers/poster-design-cover.svg",
     featured: true,
     content: `
       <div class="article">
@@ -217,7 +217,7 @@ const edited = await model.edit(image, { prompt: 'mood cinematico, tonalità fre
     date: "2025-07-29",
     readTime: "5 min",
     excerpt: "Sequencer, drumkits e mix di base con un setup tascabile.",
-    cover: "placeholder.svg",
+    cover: "covers/beats-iphone-cover.svg",
     featured: false,
     content: `
       <div class="article">
@@ -233,7 +233,7 @@ const edited = await model.edit(image, { prompt: 'mood cinematico, tonalità fre
     date: "2025-09-03",
     readTime: "3 min",
     excerpt: "Una selezione rapida di tool pratici e ispirazioni.",
-    cover: "placeholder.svg",
+    cover: "covers/weekly-news-cover.svg",
     featured: false,
     content: `
       <div class="article">
@@ -247,6 +247,34 @@ const edited = await model.edit(image, { prompt: 'mood cinematico, tonalità fre
 // State
 let currentCategory = 'all';
 let bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+
+const products = [
+  {
+    slug: 'l457-logo-tee-black',
+    title: 'L457 Logo Tee – Black',
+    image: 'aaaalogo.png',
+    price: 29.9,
+    variants: [
+      { name: 'S', priceId: 'price_l457_black_s' },
+      { name: 'M', priceId: 'price_l457_black_m' },
+      { name: 'L', priceId: 'price_l457_black_l' },
+      { name: 'XL', priceId: 'price_l457_black_xl' }
+    ]
+  },
+  {
+    slug: 'l457-logo-tee-white',
+    title: 'L457 Logo Tee – White',
+    image: 'aaaalogo.png',
+    price: 29.9,
+    variants: [
+      { name: 'S', priceId: 'price_l457_white_s' },
+      { name: 'M', priceId: 'price_l457_white_m' },
+      { name: 'L', priceId: 'price_l457_white_l' },
+      { name: 'XL', priceId: 'price_l457_white_xl' }
+    ]
+  }
+];
 
 // Utilities
 function $(sel, root=document){ return root.querySelector(sel); }
@@ -289,6 +317,95 @@ function renderPosts() {
       </div>
     </article>
   `).join('');
+}
+
+function renderShop() {
+  const grid = document.getElementById('shopGrid');
+  if (!grid) return;
+  grid.innerHTML = products.map((p) => {
+    const firstVariant = p.variants[0]?.name || '';
+    return `
+    <article class="product-card">
+      <div class="product-thumb" style="background-image:url('${p.image}')"></div>
+      <div class="product-body">
+        <div class="product-title">${p.title}</div>
+        <div class="product-price">$${p.price.toFixed(2)}</div>
+        <select class="variant-select" data-slug="${p.slug}">
+          ${p.variants.map(v => `<option value="${v.name}">${v.name}</option>`).join('')}
+        </select>
+        <button class="add-to-cart" data-slug="${p.slug}">Add to Cart</button>
+      </div>
+    </article>
+    `;
+  }).join('');
+}
+
+function saveCart() {
+  localStorage.setItem('cart', JSON.stringify(cart));
+  const count = cart.reduce((sum, i) => sum + i.quantity, 0);
+  const el = document.getElementById('cartCount');
+  if (el) el.textContent = String(count);
+}
+
+function addToCart(slug, variantName) {
+  const product = products.find(p => p.slug === slug);
+  if (!product) return;
+  const variant = product.variants.find(v => v.name === variantName) || product.variants[0];
+  const key = `${slug}:${variant.name}`;
+  const existing = cart.find(i => i.key === key);
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    cart.push({ key, slug, title: product.title, image: product.image, variant: variant.name, priceId: variant.priceId, price: product.price, quantity: 1 });
+  }
+  saveCart();
+  renderCart();
+}
+
+function removeFromCart(key) {
+  cart = cart.filter(i => i.key !== key);
+  saveCart();
+  renderCart();
+}
+
+function updateQty(key, delta) {
+  const item = cart.find(i => i.key === key);
+  if (!item) return;
+  item.quantity = Math.max(1, item.quantity + delta);
+  saveCart();
+  renderCart();
+}
+
+function cartTotal() {
+  return cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+}
+
+function renderCart() {
+  const wrap = document.getElementById('cartItems');
+  const totalEl = document.getElementById('cartTotal');
+  if (!wrap || !totalEl) return;
+  wrap.innerHTML = cart.map(i => `
+    <div class="cart-item">
+      <div class="cart-thumb" style="background-image:url('${i.image}')"></div>
+      <div class="cart-name">${i.title} · ${i.variant}</div>
+      <div class="cart-qty">
+        <button class="qty-btn" data-key="${i.key}" data-delta="-1">–</button>
+        <span>${i.quantity}</span>
+        <button class="qty-btn" data-key="${i.key}" data-delta="1">+</button>
+      </div>
+      <button class="qty-btn" data-remove="${i.key}">Remove</button>
+    </div>
+  `).join('');
+  totalEl.textContent = `$${cartTotal().toFixed(2)}`;
+}
+
+function openCart() {
+  document.getElementById('cartOverlay')?.classList.add('open');
+  renderCart();
+}
+
+function closeCart() {
+  document.getElementById('cartOverlay')?.classList.remove('open');
 }
 
 // Category filter
@@ -361,14 +478,46 @@ function bindSearch() {
     const q = e.target.value.toLowerCase();
     const res = posts.filter(p => p.title.toLowerCase().includes(q) || p.excerpt.toLowerCase().includes(q) || p.category.includes(q));
     $('#searchResults').innerHTML = res.map(p => `
-      <div class="post-card clickable" data-slug="${p.slug}">
+      <a href="posts/${p.slug}.html" class="post-card clickable" style="text-decoration: none; color: inherit;">
         <div class="post-body">
           <div class="post-meta">${p.category}</div>
           <h3 class="post-title">${p.title}</h3>
           <p class="post-excerpt">${p.excerpt}</p>
         </div>
-      </div>
+      </a>
     `).join('');
+  });
+}
+
+function bindShopUI() {
+  document.getElementById('cartBtn')?.addEventListener('click', openCart);
+  document.getElementById('cartClose')?.addEventListener('click', closeCart);
+  document.getElementById('shopGrid')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.add-to-cart');
+    if (!btn) return;
+    const slug = btn.getAttribute('data-slug');
+    const select = document.querySelector(`.variant-select[data-slug="${slug}"]`);
+    const variant = select ? select.value : '';
+    addToCart(slug, variant);
+  });
+  document.getElementById('cartItems')?.addEventListener('click', (e) => {
+    const minus = e.target.closest('.qty-btn[data-delta="-1"]');
+    const plus = e.target.closest('.qty-btn[data-delta="1"]');
+    const remove = e.target.closest('.qty-btn[data-remove]');
+    if (minus) updateQty(minus.getAttribute('data-key'), -1);
+    if (plus) updateQty(plus.getAttribute('data-key'), 1);
+    if (remove) removeFromCart(remove.getAttribute('data-remove'));
+  });
+  document.getElementById('checkoutBtn')?.addEventListener('click', async () => {
+    if (!cart.length) return;
+    const items = cart.map(i => ({ priceId: i.priceId, quantity: i.quantity }));
+    try {
+      const res = await fetch('/api/create-checkout-session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ items }) });
+      const data = await res.json();
+      if (data && data.url) {
+        window.location.href = data.url;
+      }
+    } catch (_) {}
   });
 }
 
@@ -393,7 +542,9 @@ function bindOpeners() {
     // Handle post card clicks
     const card = e.target.closest('[data-slug]');
     if(card && !e.target.closest('.post-actions')) {
-      openArticle(card.dataset.slug);
+      // Redirect to individual article page
+      const slug = card.dataset.slug;
+      window.location.href = `posts/${slug}.html`;
     }
   });
   $('#backBtn').addEventListener('click', closeArticle);
@@ -482,13 +633,16 @@ function loadExistingPostForEdit(slug) {
 function init() {
   renderFeatured();
   renderPosts();
+  renderShop();
   bindCategories();
   bindSliderDrag();
   bindSearch();
   bindOpeners();
   bindAdminUI();
+  bindShopUI();
   window.addEventListener('hashchange', handleHashChange);
   handleHashChange();
+  saveCart();
 }
 
 // Local storage only - no Firebase
@@ -1778,15 +1932,35 @@ function fetchPostsFromLocalStorage() {
   try {
     const stored = localStorage.getItem('blog_posts');
     if (!stored) return [];
-    const posts = JSON.parse(stored);
-    return posts.map(p => ({
+    const postsData = JSON.parse(stored);
+    
+    // Handle both object and array formats
+    let postsArray;
+    if (Array.isArray(postsData)) {
+      postsArray = postsData;
+    } else if (typeof postsData === 'object') {
+      // Convert object to array
+      postsArray = Object.values(postsData);
+    } else {
+      return [];
+    }
+    
+    // Default cover images for each slug
+    const defaultCovers = {
+      'nano-banana-tutorial': 'covers/nano-banana-cover.svg',
+      'poster-neo-brutalism': 'covers/poster-design-cover.svg',
+      'beats-iphone-daw': 'covers/beats-iphone-cover.svg',
+      'weekly-news-01': 'covers/weekly-news-cover.svg'
+    };
+    
+    return postsArray.map(p => ({
       slug: p.slug,
       title: p.title,
       category: p.category,
       date: p.date,
       readTime: p.readTime || '5 min',
       excerpt: p.excerpt || '',
-      cover: p.cover || '',
+      cover: p.cover || defaultCovers[p.slug] || 'placeholder.svg',
       featured: !!p.featured,
       content: p.content || '<div class="article"><p>(No content)</p></div>'
     }));
@@ -1797,20 +1971,42 @@ function fetchPostsFromLocalStorage() {
 }
 
 // Load content from local storage only
+
+// Function to reset posts to default values (for debugging)
+function resetPostsToDefault() {
+  localStorage.removeItem('blog_posts');
+  console.log('Cleared localStorage posts, reloading with defaults');
+  location.reload();
+}
+
+// Make function available globally for debugging
+window.resetPostsToDefault = resetPostsToDefault;
 function initDynamicContent() {
   initLocalStorage();
   try {
     // Load posts from localStorage
     const storedPosts = fetchPostsFromLocalStorage();
     
+    console.log('Stored posts from localStorage:', storedPosts.length);
+    console.log('Default posts array:', posts.length);
+    
     // Update posts array if we have stored content
     if (storedPosts.length > 0) {
+      console.log('Using stored posts:', storedPosts.map(p => ({ slug: p.slug, cover: p.cover })));
       posts.splice(0, posts.length, ...storedPosts);
-      renderFeatured();
-      renderPosts();
+    } else {
+      // If no stored posts, ensure we have the default posts with correct covers
+      console.log('No stored posts found, using default posts:', posts.map(p => ({ slug: p.slug, cover: p.cover })));
     }
+    
+    // Always render the posts (either from localStorage or default)
+    renderFeatured();
+    renderPosts();
   } catch (error) {
     console.error('Error loading dynamic content:', error);
+    // Fallback to default posts on error
+    renderFeatured();
+    renderPosts();
   }
 }
 
@@ -1963,24 +2159,10 @@ function addDownloadButtons() {
   });
 }
 
-// Extend init
- const origInit = init;
- init = function() {
-   origInit();
-   // Load local posts first, then dynamic content
-   initLocalContent().then(() => {
-     initDynamicContent();
-   });
-   bindAdminUI();
-   
-   // Add download buttons when admin panel opens
-   const adminToggle = document.getElementById('adminToggle');
-   if (adminToggle) {
-     adminToggle.addEventListener('click', () => {
-       setTimeout(addDownloadButtons, 300);
-     });
-   }
- };
+init = function() {
+  renderShop();
+  bindShopUI();
+  saveCart();
+};
 
-// re-run
 init();

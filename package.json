@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@dataconnect/generated": "file:src/dataconnect-generated",
-    "@firebase/vertexai-preview": "^0.0.4",
+
     "@google/generative-ai": "^0.24.1",
     "firebase": "^10.14.1",
     "serve": "^14.2.1"
